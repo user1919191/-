@@ -99,3 +99,13 @@ knife4j:
         api-rule: package
         api-rule-resources:
           - project.controller
+#热Key配置
+hotkey:
+  app-name: mianshiya
+  caffeine-size: 10000
+  push-period: 1000
+  etcd-server: http://localhost:2379
+#AI大模型接口Api
+ai:
+  apikey: xxx
+  url: https://ark.cn-beijing.volces.com/api/v3

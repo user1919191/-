@@ -9,6 +9,7 @@ import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.springframework.stereotype.Component;
 import project.exception.ThrowUtil;
+import project.model.entity.User;
 import springfox.documentation.RequestHandler;
 
 import javax.annotation.Resource;
@@ -22,8 +23,6 @@ import javax.servlet.http.HttpServletRequest;
 @Component
 public class AutoCheckInterceptor {
 
-    @Resource
-    private UserService userService;
 
     @Around("@annotation(autoCheck)")
     public Object around(ProceedingJoinPoint joinPoint,AutoCheck autoCheck) throws Throwable {
@@ -33,9 +32,6 @@ public class AutoCheckInterceptor {
         HttpServletRequest httpServletRequest = ((ServletRequestAttributes) requestAttributes).getRequest();
 
         //获取当前登录用户
-        User user = userService.getUser(httpServletRequest);
-        if(user == null){
-            ThrowUtil
-        }
+        return null;
     }
 }
