@@ -14,7 +14,8 @@ public enum ErrorCode {
     NOT_FOUND(405,"未找到"),
     NOT_VISIT(406,"禁止访问"),
     UNKNOW_ERROR(500,"未知错误"),
-    OPERATION_ERROR(501,"操作失败");
+    OPERATION_ERROR(501,"操作失败"),
+    SYSTEM_ERROR(502,"系统错误");
 
     /**
      * 状态码
