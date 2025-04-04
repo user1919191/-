@@ -2,7 +2,6 @@ package project.controller;
 
 import cn.hutool.core.io.file.FileNameUtil;
 import cn.hutool.core.util.StrUtil;
-import com.alibaba.nacos.api.naming.pojo.healthcheck.impl.Http;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.stereotype.Controller;
@@ -19,6 +18,7 @@ import project.manager.CosManager;
 import project.model.dto.file.UploadFileRequest;
 import project.model.entity.User;
 import project.model.enums.FileUploadBizEnum;
+import project.service.UserService;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;

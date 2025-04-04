@@ -6,6 +6,7 @@ import com.qcloud.cos.auth.BasicCOSCredentials;
 import com.qcloud.cos.region.Region;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
@@ -37,6 +38,7 @@ public class CosClientConfig {
      */
     private String region;
 
+    @Bean
     public COSClient cosClient(){
         BasicCOSCredentials credentials = new BasicCOSCredentials(accessKey, secretKey);
         ClientConfig clientConfig = new ClientConfig(new Region(region));
