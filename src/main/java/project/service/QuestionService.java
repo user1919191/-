@@ -3,6 +3,7 @@ package project.service;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
+import org.springframework.transaction.annotation.Transactional;
 import project.model.dto.question.QuestionQueryRequest;
 import project.model.entity.Question;
 import project.model.entity.User;
@@ -68,6 +69,7 @@ public interface QuestionService extends IService<Question> {
      * @param questionIdList
      */
 
+    @Transactional(rollbackFor = Exception.class)
     void batchDeleteQuestions(List<Long> questionIdList);
 
     /**

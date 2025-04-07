@@ -21,6 +21,7 @@ import org.springframework.data.elasticsearch.core.SearchHit;
 import org.springframework.data.elasticsearch.core.SearchHits;
 import org.springframework.data.elasticsearch.core.query.NativeSearchQuery;
 import org.springframework.data.elasticsearch.core.query.NativeSearchQueryBuilder;
+import org.springframework.transaction.annotation.Transactional;
 import project.annotation.RateLimiter;
 import project.common.ErrorCode;
 import project.constant.CommonConstant;
@@ -41,10 +42,12 @@ import project.utils.SqlUtil;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 public class QuestionServiceImp extends ServiceImpl<QuestionMapper, Question> implements QuestionService {
@@ -69,14 +72,36 @@ public class QuestionServiceImp extends ServiceImpl<QuestionMapper, Question> im
     @Override
     public void validQuestion(Question question, boolean add) {
         //1.参数校验
-        ThrowUtil.throwIf(question == null || !add, ErrorCode.PARAMS_ERROR);
-        //2.问题是否合法
-        ThrowUtil.throwIf(question.getId() < 0, ErrorCode.PARAMS_ERROR, "问题ID不能为负数");
-        ThrowUtil.throwIf(StringUtils.isBlank(question.getTitle()) || question.getTitle().length() < 2 || question.getTitle().length() > 80,
+        ThrowUtil.throwIf(question == null, ErrorCode.PARAMS_ERROR);
+        //2.获取数据
+        Long questionId = question.getId();
+        String questionTitle = question.getTitle();
+        String questionContent = question.getContent();
+        String questionTags = question.getTags();
+        Date questionCreateTime = question.getCreateTime();
+        Integer questionIsDelete = question.getIsDelete();
+        Long questionUserId = question.getUserId();
+        String questionAnswer = question.getAnswer();
+        Date questionEditTime = question.getEditTime();
+        Date questionUpdateTime = question.getUpdateTime();
+        Long questionCloseChangeId = question.getCloseChangeId();
+        //3.通用校验
+        ThrowUtil.throwIf(questionId == null || !(questionId < 0), ErrorCode.PARAMS_ERROR, "问题ID不能为负数或空");
+        ThrowUtil.throwIf(StringUtils.isBlank(questionTitle) || questionTitle.length() < 2 || questionTitle.length() > 80,
                 ErrorCode.PARAMS_ERROR, "标题长度存在问题");
-        ThrowUtil.throwIf(StringUtils.isBlank(question.getContent()) || question.getContent().length() < 10 || question.getContent().length() > 10000,
+        ThrowUtil.throwIf(StringUtils.isBlank(questionContent) || questionContent.length() < 10 || questionContent.length() > 10000,
                 ErrorCode.PARAMS_ERROR, "内容长度存在问题");
-        ThrowUtil.throwIf(question.getUserId() == null, ErrorCode.PARAMS_ERROR, "创建用户ID不能为空");
+        ThrowUtil.throwIf(StringUtils.isNotBlank(questionTags), ErrorCode.PARAMS_ERROR, "标签不能为空");
+        ThrowUtil.throwIf(questionCreateTime == null, ErrorCode.PARAMS_ERROR, "创建时间不能为空");
+        ThrowUtil.throwIf(questionIsDelete == null || !(questionIsDelete == 0 || questionIsDelete == 1), ErrorCode.PARAMS_ERROR, "删除状态非法");
+        ThrowUtil.throwIf(questionUserId == null, ErrorCode.PARAMS_ERROR, "创建用户ID不能为空");
+        //4.对于新增题目补充校验
+        if (add) {
+            ThrowUtil.throwIf(StringUtils.isNotBlank(questionAnswer), ErrorCode.PARAMS_ERROR, "不应该有推荐答案,因为还没增加");
+            ThrowUtil.throwIf(questionEditTime != null, ErrorCode.PARAMS_ERROR, "不应该有编辑时间,因为还没增加");
+            ThrowUtil.throwIf(questionUpdateTime != null, ErrorCode.PARAMS_ERROR, "不应该有更新时间,因为还没增加");
+            ThrowUtil.throwIf(questionCloseChangeId != null, ErrorCode.PARAMS_ERROR, "不应该有关闭变更ID,因为还没增加");
+        }
     }
 
     /**
@@ -100,7 +125,7 @@ public class QuestionServiceImp extends ServiceImpl<QuestionMapper, Question> im
         List<String> tagList = questionQueryRequest.getTags();
         Long userId = questionQueryRequest.getUserId();
         String answer = questionQueryRequest.getAnswer();
-
+        //Todo 补充查询条件
         if(StringUtils.isNotBlank(searchText)){
             queryWrapper.like("title", searchText).or().like("content", searchText);
         }
@@ -199,7 +224,7 @@ public class QuestionServiceImp extends ServiceImpl<QuestionMapper, Question> im
         LambdaQueryWrapper<QuestionBankQuestion> questionBankQuestionLambdaQueryWrapper = Wrappers
                 .lambdaQuery(QuestionBankQuestion.class).select(QuestionBankQuestion::getQuestionId)
                 .eq(QuestionBankQuestion::getQuestionBankId, questionBankId);
-        List<Question> questionList = questionBackService.list(questionBankQuestionLambdaQueryWrapper);
+        List<Question> questionList = questionBackQuestionService.list(questionBankQuestionLambdaQueryWrapper);
         if(CollUtil.isNotEmpty(questionList)){
             List<Long> questionIdList = questionList.stream().map(Question::getId).collect(Collectors.toList());
             queryWrapper.in("id", questionIdList);
@@ -285,7 +310,12 @@ public class QuestionServiceImp extends ServiceImpl<QuestionMapper, Question> im
         return page;
     }
 
+    /**
+     *批量删除操作
+     * @param questionIdList
+     */
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void batchDeleteQuestions(List<Long> questionIdList) {
         ThrowUtil.throwIf(CollUtil.isEmpty(questionIdList), ErrorCode.PARAMS_ERROR, "要删除的题目列表不能为空");
         for (Long questionId : questionIdList) {
@@ -300,6 +330,13 @@ public class QuestionServiceImp extends ServiceImpl<QuestionMapper, Question> im
         }
     }
 
+    /**
+     * AI生成题目
+     * @param questionType
+     * @param number
+     * @param user
+     * @return
+     */
     @Override
     public boolean aiGenerateQuestions(String questionType, int number, User user) {
         //1.参数校验
@@ -315,28 +352,25 @@ public class QuestionServiceImp extends ServiceImpl<QuestionMapper, Question> im
         String userPrompt = String.format("题目数量：%s, 题目方向：%s", number, questionType);
         // 3. 调用 AI 生成题目
         String answer = aiManager.doChat(systemPrompt, userPrompt);
-        // 4. 对题目进行预处理
-        // 按行拆分
-        List<String> lines = Arrays.asList(answer.split("\n"));
-        // 移除序号和 `
-        List<String> titleList = lines.stream()
-                .map(line -> StrUtil.removePrefix(line, StrUtil.subBefore(line, " ", false))) // 移除序号
-                .map(line -> line.replace("`", "")) // 移除 `
-                .collect(Collectors.toList());
-        // 5. 保存题目到数据库中
-        List<Question> questionList = titleList.stream().map(title -> {
+        // 4. 解析 AI 生成的题目
+        List<String> questionList = Arrays.asList(answer.split("\n"));
+        //5.规范化格式
+        List<String> questionCollect = questionList.stream().map(line -> line.substring(line.indexOf(" ") + 1))
+                .map(line -> line.replace("`", "")).collect(Collectors.toList());
+        //6.保存题目到数据库中(使用线程池提高性能)
+        ExecutorService pool = Executors.newFixedThreadPool(Math.min(questionCollect.size(), 10));
+        List<Question> questions = questionCollect.stream().map(title -> CompletableFuture.supplyAsync(() -> {
             Question question = new Question();
             question.setTitle(title);
             question.setUserId(user.getId());
+            question.setCreateTime(new Date());
             question.setTags("[\"待审核\"]");
-            // 优化点：可以并发生成
             question.setAnswer(aiGenerateQuestionAnswer(title));
             return question;
-        }).collect(Collectors.toList());
-        boolean result = this.saveBatch(questionList);
-        if (!result) {
-            throw new BusinessException(ErrorCode.OPERATION_ERROR, "保存题目失败");
-        }
+        }, pool)).collect(Collectors.toList()).stream().map(CompletableFuture::join).collect(Collectors.toList());
+        //批量保存题目
+        boolean saveBatch = this.saveBatch(questions);
+        ThrowUtil.throwIf(!saveBatch, ErrorCode.OPERATION_ERROR, "保存题目失败");
         return true;
     }
 

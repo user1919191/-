@@ -19,12 +19,12 @@ public @interface RateLimiter {
     /**
      * 限流时间窗口，单位s
      */
-    long CountTime() default 10;
+    long CountTime() default 30;
 
     /**
      * 时间窗口内允许的请求次数
      */
-    long LimitCount() default 10;
+    long LimitCount() default 30;
 
     /**
      * 时间单位
