@@ -23,6 +23,7 @@ import org.springframework.data.elasticsearch.core.query.NativeSearchQuery;
 import org.springframework.data.elasticsearch.core.query.NativeSearchQueryBuilder;
 import org.springframework.transaction.annotation.Transactional;
 import project.annotation.RateLimiter;
+import project.common.BaseResponse;
 import project.common.ErrorCode;
 import project.constant.CommonConstant;
 import project.exception.BusinessException;

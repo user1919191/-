@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 
 import org.springframework.transaction.annotation.Transactional;
+import project.common.BaseResponse;
 import project.model.dto.questionBankQuestion.QuestionBankQuestionQueryRequest;
 import project.model.entity.QuestionBankQuestion;
 import project.model.entity.User;
@@ -59,7 +60,6 @@ public interface QuestionBankQuestionService extends IService<QuestionBankQuesti
      * @param questionBankId
      * @param loginUser
      */
-    @Transactional(rollbackFor = Exception.class)
     void batchAddQuestionsToBank(List<Long> questionIdList, long questionBankId, User loginUser);
 
     /**
@@ -67,7 +67,6 @@ public interface QuestionBankQuestionService extends IService<QuestionBankQuesti
      * @param questionIdList
      * @param questionBankId
      */
-    @Transactional(rollbackFor = Exception.class)
     void batchRemoveQuestionsFromBank(List<Long> questionIdList, long questionBankId);
 
     /**

@@ -30,76 +30,76 @@ public interface UserService extends IService<User> {
      * @param userPassword
      * @return 用户信息
      */
-    public loginUserVO login(String userAccount, String userPassword, HttpServletRequest httpServletRequest);
+     loginUserVO login(String userAccount, String userPassword, HttpServletRequest httpServletRequest);
 
     /**
      *获取当前登录用户
      * @param httpServletRequest
      * @return
      */
-    public User getLoginUser(HttpServletRequest httpServletRequest);
+    User getLoginUser(HttpServletRequest httpServletRequest);
 
     /**
      *获取当前登录用户(允许未登录)
      * @param httpServletRequest
      * @return
      */
-     public User getLoginUserPermitNull(HttpServletRequest httpServletRequest);
+     User getLoginUserPermitNull(HttpServletRequest httpServletRequest);
 
     /**
      * 是否为管理员
      * @param httpServletRequest
      * @return
      */
-     public boolean isAdmin(HttpServletRequest httpServletRequest);
+     boolean isAdmin(HttpServletRequest httpServletRequest);
 
     /**
      * 用户注销
      * @param httpServletRequest
      * @return
      */
-     public boolean userLogOut(HttpServletRequest httpServletRequest);
+     boolean userLogOut(HttpServletRequest httpServletRequest);
 
     /**
      * 获取当前登录用户信息(脱敏)
      * @param user
      * @return
      */
-     public loginUserVO getLoginUserVO(User user);
+     loginUserVO getLoginUserVO(User user);
 
     /**
      * 获取用户信息(脱敏)
      * @param user
      * @return
      */
-    public UserVO getUserVO(User user);
+    UserVO getUserVO(User user);
 
     /**
      * 获取用户信息(脱敏)
      * @param userList
      * @return
      */
-    public List<UserVO> getUserVOList(List<User> userList);
+    List<UserVO> getUserVOList(List<User> userList);
 
     /**
      * 获取user的查询条件
      * @param userqueryrequest
      * @return
      */
-    public QueryWrapper<User> getQueryWrapper(UserQueryRequest userqueryrequest);
+    QueryWrapper<User> getQueryWrapper(UserQueryRequest userqueryrequest);
 
     /**
      * 添加用户签到记录
      * @param userId
      * @return 是否签到成功
      */
-    public boolean addUserSignIn(long userId);
+    boolean addUserSignIn(long userId);
 
     /**
      * 获取用户某年的签到记录
      * @param userId
      * @return
      */
-    public List<Integer> getUserSignInYear(long userId, Integer year);
+    List<Integer> getUserSignInYear(long userId, Integer year);
 
 }
