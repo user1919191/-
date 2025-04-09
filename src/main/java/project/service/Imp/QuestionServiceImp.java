@@ -35,8 +35,10 @@ import project.model.dto.question.QuestionQueryRequest;
 import project.model.entity.Question;
 import project.model.entity.QuestionBankQuestion;
 import project.model.entity.User;
+import project.model.vo.QuestionBankQuestionVO;
 import project.model.vo.QuestionVO;
 import project.model.vo.UserVO;
+import project.service.QuestionBankQuestionService;
 import project.service.QuestionService;
 import project.service.UserService;
 import project.utils.SqlUtil;
@@ -60,7 +62,7 @@ public class QuestionServiceImp extends ServiceImpl<QuestionMapper, Question> im
     private UserService userService;
 
     @Resource
-    private QuestionBackQuestionService questionBackQuestionService;
+    private QuestionBankQuestionService questionBackQuestionService;
 
     @Resource
     private AiManager aiManager;
@@ -182,6 +184,7 @@ public class QuestionServiceImp extends ServiceImpl<QuestionMapper, Question> im
      * @param request
      * @return
      */
+    //Todo 加入Sentinel限流,在降级策略中返回本地数据(Caffeine)
     @Override
     public Page<QuestionVO> getQuestionVOPage(Page<Question> questionPage, HttpServletRequest request) {
         //1.参数校验
@@ -225,9 +228,9 @@ public class QuestionServiceImp extends ServiceImpl<QuestionMapper, Question> im
         LambdaQueryWrapper<QuestionBankQuestion> questionBankQuestionLambdaQueryWrapper = Wrappers
                 .lambdaQuery(QuestionBankQuestion.class).select(QuestionBankQuestion::getQuestionId)
                 .eq(QuestionBankQuestion::getQuestionBankId, questionBankId);
-        List<Question> questionList = questionBackQuestionService.list(questionBankQuestionLambdaQueryWrapper);
+        List<QuestionBankQuestion> questionList = questionBackQuestionService.list(questionBankQuestionLambdaQueryWrapper);
         if(CollUtil.isNotEmpty(questionList)){
-            List<Long> questionIdList = questionList.stream().map(Question::getId).collect(Collectors.toList());
+            List<Long> questionIdList = questionList.stream().map(QuestionBankQuestion::getId).collect(Collectors.toList());
             queryWrapper.in("id", questionIdList);
         }else{
             return new Page<>(page, size, 0);
