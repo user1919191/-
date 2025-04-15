@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.bytebuddy.implementation.bytecode.Throw;
 import org.apache.commons.lang3.ObjectUtils;
 import org.springframework.aop.framework.AopContext;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -50,9 +51,7 @@ import java.util.stream.Stream;
 public class QuestionBankQuestionServiceImp extends ServiceImpl<QuestionBankQuestionMapper, QuestionBankQuestion> implements QuestionBankQuestionService {
 
     @Resource
-    private QuestionBankQuestionService questionBankQuestionService;
-
-    @Resource
+    @Lazy
     private QuestionService questionService;
 
     @Resource

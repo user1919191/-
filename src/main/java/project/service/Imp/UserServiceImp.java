@@ -58,7 +58,7 @@ public class UserServiceImp extends ServiceImpl<UserMapper, User> implements Use
     @Override
     public Long UserRegister(String userAccount, String userPassword, String checkPassword) {
         //分布式锁主键
-        String LockKey = "register_Lock"+userAccount;
+//        String LockKey = "register_Lock"+userAccount;
 
         //1.校验账户格式
         if(userAccount.length() < 4 || userAccount.length() > 20) {
@@ -70,14 +70,14 @@ public class UserServiceImp extends ServiceImpl<UserMapper, User> implements Use
         }
         //3.查询账户是否重复
 //        synchronized (userAccount.intern())
-        try
-        {
-            boolean tryLock = redissonClient.getLock(LockKey).tryLock(1, 5, TimeUnit.SECONDS);
-            if(!tryLock){
-                throw new BusinessException(ErrorCode.OPERATION_ERROR,"系统繁忙");
-            }
+//        try
+//        {
+//            boolean tryLock = redissonClient.getLock(LockKey).tryLock(1, 5, TimeUnit.SECONDS);
+//            if(!tryLock){
+//                throw new BusinessException(ErrorCode.OPERATION_ERROR,"系统繁忙");
+//            }
             QueryWrapper<User> queryWrapper = new QueryWrapper<>();
-            queryWrapper.eq("user_account",userAccount);
+            queryWrapper.eq("userAccount",userAccount);
             long count = this.baseMapper.selectCount(queryWrapper);
             if(count > 0 )
             {
@@ -95,11 +95,11 @@ public class UserServiceImp extends ServiceImpl<UserMapper, User> implements Use
                 throw new BusinessException(ErrorCode.OPERATION_ERROR,"用户注册失败");
             }
             return user.getId();
-        } catch (InterruptedException e) {
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR,"在执行账号注册时被打断"+e.getMessage());
-        } finally {
-            redissonClient.getLock(LockKey).unlock();
-        }
+//        } catch (InterruptedException e) {
+//            throw new BusinessException(ErrorCode.SYSTEM_ERROR,"在执行账号注册时被打断"+e.getMessage());
+//        } finally {
+//            redissonClient.getLock(LockKey).unlock();
+//        }
     }
 
     /**
@@ -116,14 +116,13 @@ public class UserServiceImp extends ServiceImpl<UserMapper, User> implements Use
 
         //2.查询用户是否存在
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("user_account",userAccount);
-        queryWrapper.eq("user_password",userPassword);
+        queryWrapper.eq("userAccount",userAccount);
         User user = this.baseMapper.selectOne(queryWrapper);
         if(user == null) {
             throw new BusinessException(ErrorCode.OPERATION_ERROR,"用户不存在");
         }
+        boolean checked= PasswordUtils.checkPassword(userPassword, user.getUserPassword());
         //2.1密码校验
-        boolean checked = PasswordUtils.checkPassword(userPassword, user.getUserPassword());
         if(!checked) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR,"密码错误");
         }
@@ -133,10 +132,8 @@ public class UserServiceImp extends ServiceImpl<UserMapper, User> implements Use
         }
 
         //3.获取登录设备并判断冲突
-        synchronized (userAccount.intern()) {
-            StpUtil.login(user.getId(), DeviceUtil.getDeviceType(httpServletRequest));
-            StpUtil.getSession().set(User_Status_Login,user);
-        }
+        StpUtil.login(user.getId(), DeviceUtil.getDeviceType(httpServletRequest));
+        StpUtil.getSession().set(User_Status_Login,user);
         return this.getLoginUserVO(user);
     }
 
@@ -152,7 +149,7 @@ public class UserServiceImp extends ServiceImpl<UserMapper, User> implements Use
         ThrowUtil.throwIf(loginIdDefaultNull == null, ErrorCode.NOT_LOGIN,"用户未登录");
 
         //2.获取用户信息
-        User user = this.getById((Long) loginIdDefaultNull);
+        User user = this.getById((String) loginIdDefaultNull);
         ThrowUtil.throwIf(user == null, ErrorCode.NOT_LOGIN,"用户不存在");
 
         return user;

@@ -31,35 +31,35 @@ public class AutoCheckInterceptor {
     private UserService userService;
 
     @Around("@annotation(autoCheck)")
-    public Object around(ProceedingJoinPoint joinPoint,AutoCheck autoCheck) throws Throwable {
+    public Object doInterceptor(ProceedingJoinPoint joinPoint,AutoCheck autoCheck) throws Throwable {
         String mustRole = autoCheck.mustRole();
         RequestAttributes requestAttributes = RequestContextHolder.currentRequestAttributes();
         HttpServletRequest httpServletRequest = ((ServletRequestAttributes) requestAttributes).getRequest();
 
-        //获取当前登录用户
+        // 当前登录用户
         User loginUser = userService.getLoginUser(httpServletRequest);
         UserRoleEnum mustRoleEnum = UserRoleEnum.getEnumByValue(mustRole);
-
-        //获取登录用户的权限
-        UserRoleEnum loginUserRoleEnum = UserRoleEnum.getEnumByValue(loginUser.getUserRole());
-
-        if(mustRole == null){
+        // 不需要权限，放行
+        if (mustRoleEnum == null) {
             return joinPoint.proceed();
         }
-
-        if(loginUserRoleEnum == null){
+        // 必须有该权限才通过
+        UserRoleEnum userRoleEnum = UserRoleEnum.getEnumByValue(loginUser.getUserRole());
+        if (userRoleEnum == null) {
             throw new BusinessException(ErrorCode.NOT_ROLE);
         }
-
-        if(loginUserRoleEnum.equals(UserRoleEnum.BAN)){
-            throw new BusinessException(ErrorCode.NOT_ROLE);
+        // 如果被封号，直接拒绝
+        if (UserRoleEnum.BAN.equals(userRoleEnum)) {
+            throw new BusinessException(ErrorCode.NOT_VISIT);
         }
-
-        if(mustRoleEnum.equals(UserRoleEnum.ADMIN)){
-            if(!loginUserRoleEnum.equals(UserRoleEnum.ADMIN)){
+        // 必须有管理员权限
+        if (UserRoleEnum.ADMIN.equals(mustRoleEnum)) {
+            // 用户没有管理员权限，拒绝
+            if (!UserRoleEnum.ADMIN.equals(userRoleEnum)) {
                 throw new BusinessException(ErrorCode.NOT_ROLE);
             }
         }
+        // 通过权限校验，放行
         return joinPoint.proceed();
     }
 }

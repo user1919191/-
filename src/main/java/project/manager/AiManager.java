@@ -1,7 +1,6 @@
 package project.manager;
 
 import cn.hutool.core.collection.CollUtil;
-import com.alibaba.nacos.api.annotation.NacosInjected;
 import com.volcengine.ark.runtime.model.completion.chat.ChatCompletionChoice;
 import com.volcengine.ark.runtime.model.completion.chat.ChatCompletionRequest;
 import com.volcengine.ark.runtime.model.completion.chat.ChatMessage;
@@ -15,17 +14,20 @@ import javax.annotation.Resource;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * 通用的 AI 调用类
+ */
 @Service
 public class AiManager {
 
     @Resource
-    private ArkService arkService;
+    private ArkService aiService;
 
-
-    private final String DEFAULT_MODEL = "deepseek-v3-241226";
+    private final String DEFAULT_MODEL = "deepseek-v3-250324";
 
     /**
-     * 调用 AI 接口
+     * 调用 AI 接口，获取响应字符串
+     *
      * @param userPrompt
      * @return
      */
@@ -34,7 +36,8 @@ public class AiManager {
     }
 
     /**
-     * 调用 AI 接口
+     * 调用 AI 接口，获取响应字符串
+     *
      * @param systemPrompt
      * @param userPrompt
      * @return
@@ -44,7 +47,8 @@ public class AiManager {
     }
 
     /**
-     * 调用 AI 接口
+     * 调用 AI 接口，获取响应字符串
+     *
      * @param systemPrompt
      * @param userPrompt
      * @param model
@@ -61,7 +65,8 @@ public class AiManager {
     }
 
     /**
-     * 调用 AI 接口（允许传入自定义的消息列表，使用默认模型）
+     * 调用 AI 接口，获取响应字符串（允许传入自定义的消息列表，使用默认模型）
+     *
      * @param messages
      * @return
      */
@@ -70,7 +75,7 @@ public class AiManager {
     }
 
     /**
-     * 调用 AI 接口（允许传入自定义的消息列表）
+     * 调用 AI 接口，获取响应字符串（允许传入自定义的消息列表）
      *
      * @param messages
      * @param model
@@ -79,15 +84,17 @@ public class AiManager {
     public String doChat(List<ChatMessage> messages, String model) {
         // 构造请求
         ChatCompletionRequest chatCompletionRequest = ChatCompletionRequest.builder()
-//                .model("deepseek-v3-241226")
-                .model(model)
+                .model("deepseek-v3-250324")
+ //               .model(model)
                 .messages(messages)
                 .build();
         // 调用接口发送请求
-        List<ChatCompletionChoice> choices = arkService.createChatCompletion(chatCompletionRequest).getChoices();
+        List<ChatCompletionChoice> choices = aiService.createChatCompletion(chatCompletionRequest).getChoices();
         if (CollUtil.isNotEmpty(choices)) {
             return (String) choices.get(0).getMessage().getContent();
         }
         throw new BusinessException(ErrorCode.OPERATION_ERROR, "AI 调用失败，没有返回结果");
+//        // shutdown service after all requests is finished
+//        aiService.shutdownExecutor();
     }
 }

@@ -11,10 +11,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.redisson.api.RateIntervalUnit;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.*;
 import project.annotation.RateLimiter;
 import project.common.BaseResponse;
 import project.common.DeleteRequest;
@@ -37,7 +34,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
-@Controller
+@RestController
 @RequestMapping("/user")
 public class UserController {
 
@@ -59,7 +56,7 @@ public class UserController {
         ThrowUtil.throwIf(StringUtils.isAnyBlank(userAccount,userPassword,checkPassword)
                 ,new BusinessException(ErrorCode.PARAMS_ERROR,"请输入账号或者密码或者确认密码"));
         //校验两次密码是否相同
-        ThrowUtil.throwIf(userPassword.equals(checkPassword),ErrorCode.PARAMS_ERROR,"两次密码不一致");
+        ThrowUtil.throwIf(!userPassword.equals(checkPassword),ErrorCode.PARAMS_ERROR,"两次密码不一致");
         long result = userService.UserRegister(userAccount,userPassword,checkPassword);
         return ResultUtil.success(result);
     }
@@ -70,7 +67,7 @@ public class UserController {
      * @param httpServletRequest
      * @return
      */
-    @RequestMapping("/login")
+    @PostMapping("/login")
     public BaseResponse<loginUserVO> login(@RequestBody UserLoginRequest userLoginRequest, HttpServletRequest httpServletRequest) {
         //1.参数校验
         ThrowUtil.throwIf(userLoginRequest == null,new BusinessException(ErrorCode.PARAMS_ERROR,"传入参数为空"));
@@ -84,9 +81,9 @@ public class UserController {
         if (userPassword.length() < 8 || userPassword.length() > 20) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR,"用户密码格式错误");
         }
-        userService.login(userAccount,userPassword,httpServletRequest);
+        loginUserVO loginUserVO = userService.login(userAccount, userPassword, httpServletRequest);
         //4.返回结果
-        return null;
+        return ResultUtil.success(loginUserVO);
     }
 
     /**
@@ -106,7 +103,8 @@ public class UserController {
      * @param httpServletRequest
      * @return
      */
-    @GetMapping("/get/loginUser")
+    @GetMapping("/get/login")
+    @SaCheckRole(UserConstant.User_Status_Login)
     public BaseResponse<loginUserVO> getLoginUserVO(HttpServletRequest httpServletRequest) {
         ThrowUtil.throwIf(httpServletRequest == null,new BusinessException(ErrorCode.PARAMS_ERROR,"传入参数为空"));
         User loginUser = userService.getLoginUser(httpServletRequest);
@@ -119,7 +117,7 @@ public class UserController {
      * @param httpServletRequest
      * @return
      */
-    @PostMapping("/add/user")
+    @PostMapping("/add")
     @SaCheckRole(UserConstant.Admin_Role)
     public BaseResponse<Long> addUser(@RequestBody UserAddRequest userAddRequest,HttpServletRequest httpServletRequest){
         //1.参数校验
@@ -150,7 +148,7 @@ public class UserController {
      * @param httpServletRequest
      * @return
      */
-    @PostMapping("/delete/user")
+    @PostMapping("/delete")
     @SaCheckRole(UserConstant.Admin_Role)
     public BaseResponse<Boolean> deleteUser(@RequestBody DeleteRequest userDeleteRequest, HttpServletRequest httpServletRequest){
         //1.参数校验
@@ -169,7 +167,7 @@ public class UserController {
      * @param httpServletRequest
      * @return
      */
-    @PostMapping("/update/user")
+    @PostMapping("/update")
     @SaCheckRole(UserConstant.Admin_Role)
     public BaseResponse<Boolean> updateUser(@RequestBody UserUpdateRequest userUpdateRequest, HttpServletRequest httpServletRequest){
         //1.参数校验
@@ -226,7 +224,7 @@ public class UserController {
      * @param httpServletRequest
      * @return
      */
-    @GetMapping("/get/ById")
+    @GetMapping("/get")
     @SaCheckRole(UserConstant.Admin_Role)
     public BaseResponse<User> getUserById(long id,HttpServletRequest httpServletRequest) {
         //1.参数校验
@@ -327,6 +325,7 @@ public class UserController {
      * @param httpServletRequest
      * @return
      */
+    @PostMapping("add/sign_in")
     public BaseResponse<Boolean> addUserSignIn(HttpServletRequest httpServletRequest){
         //1.参数校验
         ThrowUtil.throwIf(httpServletRequest == null,new BusinessException(ErrorCode.PARAMS_ERROR,"传入参数为空"));

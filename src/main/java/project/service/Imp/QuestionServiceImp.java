@@ -2,12 +2,15 @@ package project.service.Imp;
 
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.ObjectUtil;
-import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.jd.platform.hotkey.client.callback.JdHotKeyStore;
+import jodd.time.TimeUtil;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.elasticsearch.index.query.BoolQueryBuilder;
@@ -21,9 +24,8 @@ import org.springframework.data.elasticsearch.core.SearchHit;
 import org.springframework.data.elasticsearch.core.SearchHits;
 import org.springframework.data.elasticsearch.core.query.NativeSearchQuery;
 import org.springframework.data.elasticsearch.core.query.NativeSearchQueryBuilder;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import project.annotation.RateLimiter;
-import project.common.BaseResponse;
 import project.common.ErrorCode;
 import project.constant.CommonConstant;
 import project.exception.BusinessException;
@@ -35,7 +37,6 @@ import project.model.dto.question.QuestionQueryRequest;
 import project.model.entity.Question;
 import project.model.entity.QuestionBankQuestion;
 import project.model.entity.User;
-import project.model.vo.QuestionBankQuestionVO;
 import project.model.vo.QuestionVO;
 import project.model.vo.UserVO;
 import project.service.QuestionBankQuestionService;
@@ -45,15 +46,28 @@ import project.utils.SqlUtil;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+@Service
 public class QuestionServiceImp extends ServiceImpl<QuestionMapper, Question> implements QuestionService {
+
+    /**
+     * 通用前缀
+     */
+    private final String QUESTION_PREFIX = "question:";
+
+    /**
+     * 本地缓存
+     */
+    private final Cache<Long,QuestionVO> questionVOCache = Caffeine.newBuilder().maximumSize(5000)
+            .expireAfterWrite(10, TimeUnit.MINUTES)
+            .expireAfterAccess(5,TimeUnit.MINUTES)
+            .build();
 
     @Resource
     private ElasticsearchRestTemplate elasticsearchRestTemplate;
@@ -165,8 +179,9 @@ public class QuestionServiceImp extends ServiceImpl<QuestionMapper, Question> im
         ThrowUtil.throwIf(question == null || request == null || question.getIsDelete().equals(0),
                 ErrorCode.PARAMS_ERROR,"问题不存在");
         //2.转化为封装类
+        Long id = question.getId();
         QuestionVO questionVO = QuestionVO.objToVo(question);
-        ThrowUtil.throwIf(!questionVO.getId().equals(question.getId()), ErrorCode.PARAMS_ERROR,"问题ID不匹配");
+        ThrowUtil.throwIf(!questionVO.getId().equals(id), ErrorCode.PARAMS_ERROR,"问题ID不匹配");
         if(questionVO.getId() == null || questionVO.getId() < 0){
             throw new BusinessException(ErrorCode.OPERATION_ERROR, "问题ID不能为空");
         }
@@ -175,6 +190,14 @@ public class QuestionServiceImp extends ServiceImpl<QuestionMapper, Question> im
         UserVO userVO = userService.getUserVO(user);
         ThrowUtil.throwIf(userVO == null, ErrorCode.OPERATION_ERROR, "用户不存在");
         questionVO.setUser(userVO);
+
+        //3.检测是否为HotKey
+        String questionKey = QUESTION_PREFIX + id;
+        JdHotKeyStore.smartSet(questionKey,questionVO);
+        if (JdHotKeyStore.isHotKey(questionKey)) {
+            questionVOCache.put(id,questionVO);
+        }
+
         return questionVO;
     }
 
