@@ -82,6 +82,8 @@ public class QuestionBankController {
         BeanUtils.copyProperties(addRequest,questionBank);
         User loginUser = userService.getLoginUser(request);
         questionBank.setUserId(loginUser.getId());
+        questionBank.setCreateTime(new Date());
+        questionBank.setIsDelete(0);
         //2.2数据校验
         questionBankService.validQuestionBank(questionBank,true);
         //3.添加题库
@@ -107,9 +109,6 @@ public class QuestionBankController {
         ThrowUtil.throwIf(questionBank == null, ErrorCode.NOT_FOUND,"题库不存在");
         //Todo 如果添加@Resource对于QBQ会出现循环依赖,怎么处理
         //3.删除题库题目关联表
-        LambdaQueryWrapper<QuestionBankQuestion> queryWrapper = Wrappers.lambdaQuery(QuestionBankQuestion.class)
-                .select(QuestionBankQuestion::getQuestionId)
-                .eq(QuestionBankQuestion::getQuestionBankId, requestId);
         boolean remove = questionBankService.removeById(deleteRequest.getId());
         ThrowUtil.throwIf(!remove, ErrorCode.OPERATION_ERROR,"删除题目题库关联失败");
         //4.删除题库
@@ -137,7 +136,6 @@ public class QuestionBankController {
         //Todo validQuestionBank是否可以优化
         User loginUser = userService.getLoginUser(request);
         questionBankService.validQuestionBank(questionBank,false);
-        questionBank.setUpdateUserId(loginUser.getId());
         questionBank.setUpdateTime(new Date());
         //4.更新题库
         boolean save = questionBankService.save(questionBank);

@@ -79,7 +79,6 @@ public class QuestionBankQuestionServiceImp extends ServiceImpl<QuestionBankQues
         Long changeUserId = questionBankQuestion.getChangeUserId();
 
         //3.通用数据校验
-        ThrowUtil.throwIf(questionBankQuestionId == null || questionBankQuestionId <= 0,ErrorCode.PARAMS_ERROR,"id不能为空");
         ThrowUtil.throwIf(questionId == null || questionId <= 0,ErrorCode.PARAMS_ERROR,"题目id不能为空");
         ThrowUtil.throwIf(questionBankId == null || questionBankId <= 0,ErrorCode.PARAMS_ERROR,"题库id不能为空");
         ThrowUtil.throwIf(questionUserId == null || questionUserId <= 0,ErrorCode.PARAMS_ERROR,"创建用户id不能为空");

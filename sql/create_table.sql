@@ -64,3 +64,5 @@ create table if not exists post_favour
     index idx_postId (postId),
     index idx_userId (userId)
 ) comment '帖子收藏';
+
+alter table question add column CloseChangeId Long not null comment '最近修改人id';

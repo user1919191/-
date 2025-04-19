@@ -104,7 +104,7 @@ public class UserController {
      * @return
      */
     @GetMapping("/get/login")
-    @SaCheckRole(UserConstant.User_Status_Login)
+    @SaCheckRole()
     public BaseResponse<loginUserVO> getLoginUserVO(HttpServletRequest httpServletRequest) {
         ThrowUtil.throwIf(httpServletRequest == null,new BusinessException(ErrorCode.PARAMS_ERROR,"传入参数为空"));
         User loginUser = userService.getLoginUser(httpServletRequest);
@@ -176,11 +176,10 @@ public class UserController {
 
         //2.检查用户是否存在
         User user = userService.getById(userUpdateRequest.getId());
-        ThrowUtil.throwIf(user == null,new BusinessException(ErrorCode.SYSTEM_ERROR,"用户不存在"));
+        ThrowUtil.throwIf(user == null,new BusinessException(ErrorCode.NOT_FOUND,"用户不存在"));
 
         //3.更新敏感内容记录
-        ThrowUtil.throwIf(user.getId().equals(userUpdateRequest.getId()),ErrorCode.NOT_ROLE,"无权限修改用户信息");
-        if(!userUpdateRequest.getUserRole().equals(UserConstant.Default_Role)){
+        if(!userUpdateRequest.getUserRole().equals(UserConstant.Admin_Role)){
             log.info("用户{}从{}权限修改为{}",userUpdateRequest.getId(),user.getUserRole(),userUpdateRequest.getUserRole());
         }
         BeanUtils.copyProperties(userUpdateRequest,user);
@@ -228,10 +227,10 @@ public class UserController {
     @SaCheckRole(UserConstant.Admin_Role)
     public BaseResponse<User> getUserById(long id,HttpServletRequest httpServletRequest) {
         //1.参数校验
-        ThrowUtil.throwIf(id <= 0 || httpServletRequest == null,new BusinessException(ErrorCode.PARAMS_ERROR,"传入参数非法"));
+        ThrowUtil.throwIf(id <= 0,new BusinessException(ErrorCode.PARAMS_ERROR,"传入参数非法"));
         //2.获取用户
         User user = userService.getById(id);
-        ThrowUtil.throwIf(user == null,new BusinessException(ErrorCode.SYSTEM_ERROR,"用户不存在"));
+        ThrowUtil.throwIf(user == null,new BusinessException(ErrorCode.NOT_FOUND,"用户不存在"));
         return ResultUtil.success(user);
     }
 
@@ -259,17 +258,16 @@ public class UserController {
      * @param httpServletRequest
      * @return
      */
-    @GetMapping("/list/page")
+    @PostMapping("/list/page")
     @SaCheckRole(UserConstant.Admin_Role)
     public BaseResponse<Page<User>> listUserByPage(@RequestBody UserQueryRequest userQueryRequest,HttpServletRequest httpServletRequest){
         //1.参数校验
         ThrowUtil.throwIf(userQueryRequest == null || httpServletRequest == null,new BusinessException(ErrorCode.PARAMS_ERROR,"传入参数为空"));
         //2.获取分页查询条件
-        int page = userQueryRequest.getPage();
-        int size = userQueryRequest.getSize();
+        long page = userQueryRequest.getPage();
+        long size = userQueryRequest.getSize();
         //3.获取分页
         Page<User> userPage = userService.page(new Page<>(page, size), userService.getQueryWrapper(userQueryRequest));
-        ThrowUtil.throwIf(userPage == null,new BusinessException(ErrorCode.SYSTEM_ERROR,"获取用户列表失败"));
         return ResultUtil.success(userPage);
     }
 
@@ -279,7 +277,7 @@ public class UserController {
      * @param httpServletRequest
      * @return
      */
-    @GetMapping("/list/page/vo")
+    @PostMapping("/list/page/vo")
     //防止爬虫注解
     @RateLimiter(key = "listUserVoByPage",CountTime = 20,LimitCount = 20,timeUnit = RateIntervalUnit.SECONDS,limitType = LimitTypeEnum.REJECT_USER)
     public BaseResponse<Page<UserVO>> listUserVoByPage(@RequestBody UserQueryRequest userQueryRequest,HttpServletRequest httpServletRequest){
@@ -288,11 +286,9 @@ public class UserController {
         //2.获取分页参数
         Page<User> userPage = userService.page(new Page<>(userQueryRequest.getPage(), userQueryRequest.getSize())
                 , userService.getQueryWrapper(userQueryRequest));
-        ThrowUtil.throwIf(userPage == null,new BusinessException(ErrorCode.SYSTEM_ERROR,"获取用户列表失败"));
         //3.获取VO分页
         Page<UserVO> page = new Page<>(userQueryRequest.getPage(), userQueryRequest.getSize());
         Page<UserVO> userVOPage = page.setRecords(userService.getUserVOList(userPage.getRecords()));
-        ThrowUtil.throwIf(userVOPage == null,new BusinessException(ErrorCode.SYSTEM_ERROR,"获取用户列表失败"));
         return ResultUtil.success(userVOPage);
     }
 

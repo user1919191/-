@@ -11,21 +11,27 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.jd.platform.hotkey.client.callback.JdHotKeyStore;
 import jodd.time.TimeUtil;
+import net.bytebuddy.implementation.bytecode.Throw;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.elasticsearch.action.support.nodes.BaseNodeRequest;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.sort.SortBuilder;
 import org.elasticsearch.search.sort.SortBuilders;
 import org.elasticsearch.search.sort.SortOrder;
+import org.redisson.api.RedissonClient;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.elasticsearch.core.ElasticsearchRestTemplate;
 import org.springframework.data.elasticsearch.core.SearchHit;
 import org.springframework.data.elasticsearch.core.SearchHits;
 import org.springframework.data.elasticsearch.core.query.NativeSearchQuery;
 import org.springframework.data.elasticsearch.core.query.NativeSearchQueryBuilder;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import project.common.BaseResponse;
 import project.common.ErrorCode;
 import project.constant.CommonConstant;
 import project.exception.BusinessException;
@@ -47,10 +53,7 @@ import project.utils.SqlUtil;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -62,12 +65,10 @@ public class QuestionServiceImp extends ServiceImpl<QuestionMapper, Question> im
     private final String QUESTION_PREFIX = "question:";
 
     /**
-     * 本地缓存
+     * 本地JVM缓存
      */
-    private final Cache<Long,QuestionVO> questionVOCache = Caffeine.newBuilder().maximumSize(5000)
-            .expireAfterWrite(10, TimeUnit.MINUTES)
-            .expireAfterAccess(5,TimeUnit.MINUTES)
-            .build();
+    @Resource(name ="questionCache")
+    private Cache<String, Object> questionVOCache;
 
     @Resource
     private ElasticsearchRestTemplate elasticsearchRestTemplate;
@@ -103,12 +104,11 @@ public class QuestionServiceImp extends ServiceImpl<QuestionMapper, Question> im
         Date questionUpdateTime = question.getUpdateTime();
         Long questionCloseChangeId = question.getCloseChangeId();
         //3.通用校验
-        ThrowUtil.throwIf(questionId == null || !(questionId < 0), ErrorCode.PARAMS_ERROR, "问题ID不能为负数或空");
         ThrowUtil.throwIf(StringUtils.isBlank(questionTitle) || questionTitle.length() < 2 || questionTitle.length() > 80,
                 ErrorCode.PARAMS_ERROR, "标题长度存在问题");
         ThrowUtil.throwIf(StringUtils.isBlank(questionContent) || questionContent.length() < 10 || questionContent.length() > 10000,
                 ErrorCode.PARAMS_ERROR, "内容长度存在问题");
-        ThrowUtil.throwIf(StringUtils.isNotBlank(questionTags), ErrorCode.PARAMS_ERROR, "标签不能为空");
+        ThrowUtil.throwIf(StringUtils.isBlank(questionTags), ErrorCode.PARAMS_ERROR, "标签不能为空");
         ThrowUtil.throwIf(questionCreateTime == null, ErrorCode.PARAMS_ERROR, "创建时间不能为空");
         ThrowUtil.throwIf(questionIsDelete == null || !(questionIsDelete == 0 || questionIsDelete == 1), ErrorCode.PARAMS_ERROR, "删除状态非法");
         ThrowUtil.throwIf(questionUserId == null, ErrorCode.PARAMS_ERROR, "创建用户ID不能为空");
@@ -118,6 +118,9 @@ public class QuestionServiceImp extends ServiceImpl<QuestionMapper, Question> im
             ThrowUtil.throwIf(questionEditTime != null, ErrorCode.PARAMS_ERROR, "不应该有编辑时间,因为还没增加");
             ThrowUtil.throwIf(questionUpdateTime != null, ErrorCode.PARAMS_ERROR, "不应该有更新时间,因为还没增加");
             ThrowUtil.throwIf(questionCloseChangeId != null, ErrorCode.PARAMS_ERROR, "不应该有关闭变更ID,因为还没增加");
+        }else{
+            //Todo 踩坑笔记:Question的主键为雪花算法生成,只有当插入数据库时才自动生成(如果未指定),所以在插入前不能判断Id为null,否则会报错
+            ThrowUtil.throwIf(questionId == null || (questionId <= 0), ErrorCode.PARAMS_ERROR, "问题ID不能为负数或空");
         }
     }
 
@@ -180,6 +183,15 @@ public class QuestionServiceImp extends ServiceImpl<QuestionMapper, Question> im
                 ErrorCode.PARAMS_ERROR,"问题不存在");
         //2.转化为封装类
         Long id = question.getId();
+        //3.先从缓存中获取
+        String questionKey = QUESTION_PREFIX + id;
+        if(JdHotKeyStore.isHotKey(questionKey)){
+            JdHotKeyStore.smartSet(questionKey, question);
+            QuestionVO questionCache = (QuestionVO)questionVOCache.getIfPresent(id.toString());
+            if(questionCache!= null){
+                return questionCache;
+            }
+        }
         QuestionVO questionVO = QuestionVO.objToVo(question);
         ThrowUtil.throwIf(!questionVO.getId().equals(id), ErrorCode.PARAMS_ERROR,"问题ID不匹配");
         if(questionVO.getId() == null || questionVO.getId() < 0){
@@ -190,13 +202,6 @@ public class QuestionServiceImp extends ServiceImpl<QuestionMapper, Question> im
         UserVO userVO = userService.getUserVO(user);
         ThrowUtil.throwIf(userVO == null, ErrorCode.OPERATION_ERROR, "用户不存在");
         questionVO.setUser(userVO);
-
-        //3.检测是否为HotKey
-        String questionKey = QUESTION_PREFIX + id;
-        JdHotKeyStore.smartSet(questionKey,questionVO);
-        if (JdHotKeyStore.isHotKey(questionKey)) {
-            questionVOCache.put(id,questionVO);
-        }
 
         return questionVO;
     }
@@ -263,6 +268,27 @@ public class QuestionServiceImp extends ServiceImpl<QuestionMapper, Question> im
     }
 
     /**
+     * 降级策略从缓存遍历返回
+     */
+    @Override
+    public Page<QuestionVO> getQuestionFromCache(QuestionQueryRequest request){
+        //1.获取分页参数
+        int page = request.getPage();
+        int size = request.getSize();
+        Page<QuestionVO> questionVOPage = new Page<>(page, size);
+        //2.获取缓存中的数据
+        @SuppressWarnings("unchecked")
+        ConcurrentMap<Long, QuestionVO> questionVOCacheMap =
+                (ConcurrentMap<Long, QuestionVO>) (ConcurrentMap<?, ?>) questionVOCache.asMap();
+        if(CollUtil.isEmpty(questionVOCacheMap)){
+            return new Page<>(1, 10, 0);
+        }
+        List<QuestionVO> questionVOList = new ArrayList<>(questionVOCacheMap.values());
+        questionVOPage.setRecords(questionVOList);
+        return  questionVOPage;
+    }
+
+    /**
      * 从ES中获取题目
      * @param questionQueryRequest
      * @return
@@ -302,7 +328,6 @@ public class QuestionServiceImp extends ServiceImpl<QuestionMapper, Question> im
         }
 
         if (StringUtils.isNotBlank(searchText)) {
-            // title = '' or content = '' or answer = ''
             boolQueryBuilder.should(QueryBuilders.matchQuery("title", searchText));
             boolQueryBuilder.should(QueryBuilders.matchQuery("content", searchText));
             boolQueryBuilder.should(QueryBuilders.matchQuery("answer", searchText));
@@ -345,18 +370,24 @@ public class QuestionServiceImp extends ServiceImpl<QuestionMapper, Question> im
     @Transactional(rollbackFor = Exception.class)
     public void batchDeleteQuestions(List<Long> questionIdList) {
         ThrowUtil.throwIf(CollUtil.isEmpty(questionIdList), ErrorCode.PARAMS_ERROR, "要删除的题目列表不能为空");
+        List<String> cacheDeleteList = new ArrayList<>();
         for (Long questionId : questionIdList) {
+            //逻辑删除题目
             boolean result = this.removeById(questionId);
             ThrowUtil.throwIf(!result, ErrorCode.OPERATION_ERROR, "删除题目失败");
-
+            //Todo 从缓存中删除题目(优化点:批量设置逻辑删除,删除缓存)
+            String deleteKey = QUESTION_PREFIX + questionId;
+            if(questionVOCache.getIfPresent(deleteKey) != null){
+                boolean add = cacheDeleteList.add(deleteKey);
+                ThrowUtil.throwIf(!add, ErrorCode.OPERATION_ERROR, "删除缓存失败");
+            }
+            //批量从缓存中删除
+            questionVOCache.invalidateAll(cacheDeleteList);
             LambdaQueryWrapper<QuestionBankQuestion> lambdaQueryWrapper = Wrappers.lambdaQuery(QuestionBankQuestion.class)
                     .eq(QuestionBankQuestion::getQuestionId, questionId);
             result = questionBackQuestionService.remove(lambdaQueryWrapper);
-
-            ThrowUtil.throwIf(!result, ErrorCode.OPERATION_ERROR, "删除题目题库关联失败");
         }
     }
-
     /**
      * AI生成题目
      * @param questionType

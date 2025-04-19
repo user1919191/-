@@ -80,4 +80,10 @@ public interface QuestionService extends IService<Question> {
      * @return ture / false
      */
     boolean aiGenerateQuestions(String questionType, int number, User user);
+
+    /**
+     * 从缓存中获取题目
+     * @return
+     */
+    Page<QuestionVO> getQuestionFromCache(QuestionQueryRequest request);
 }

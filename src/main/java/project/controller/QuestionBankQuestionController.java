@@ -145,7 +145,6 @@ public class QuestionBankQuestionController {
      * @return
      */
     @GetMapping("/get/page")
-    @SaCheckRole(UserConstant.Admin_Role)
     public BaseResponse <Page<QuestionBankQuestion>> getQuestionBankQuestionPage(@RequestBody QuestionBankQuestionQueryRequest queryRequest, HttpServletRequest request){
         //1.参数校验
         ThrowUtil.throwIf(queryRequest == null || request == null, ErrorCode.PARAMS_ERROR,"参数为空");

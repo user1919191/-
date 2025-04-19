@@ -28,6 +28,7 @@ import project.utils.SqlUtil;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.util.*;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -36,8 +37,8 @@ import java.util.stream.Collectors;
 @Slf4j
 public class QuestionBankServiceImp extends ServiceImpl<QuestionBankMapper, QuestionBank> implements QuestionBankService {
 
-    private final Cache<Long,UserVO> userVOCache = Caffeine.newBuilder().maximumSize(5000)
-            .expireAfterWrite(10, TimeUnit.MINUTES).build();
+    @Resource(name = "userCache")
+    private Cache<String, Object> userCache;
 
     @Resource
     private UserService userService;
@@ -60,9 +61,7 @@ public class QuestionBankServiceImp extends ServiceImpl<QuestionBankMapper, Ques
         Date bankCreateTime = questionBank.getCreateTime();
         Date bankEditTime = questionBank.getEditTime();
         Date bankUpdateTime = questionBank.getUpdateTime();
-        Long updateUserId = questionBank.getUpdateUserId();
         Integer bankIsDelete = questionBank.getIsDelete();
-        ThrowUtil.throwIf(bankId == null || bankId <=  0, ErrorCode.PARAMS_ERROR, "题库id错误");
         ThrowUtil.throwIf(StringUtils.isEmpty(bankTitle) || bankTitle.length() <= 1 || bankTitle.length() >= 50
                 , ErrorCode.PARAMS_ERROR, "题库名称错误");
         ThrowUtil.throwIf(StringUtils.isEmpty(bankDescription) || bankDescription.length() <= 1
@@ -71,12 +70,10 @@ public class QuestionBankServiceImp extends ServiceImpl<QuestionBankMapper, Ques
                 , ErrorCode.PARAMS_ERROR, "题库图片错误");
         ThrowUtil.throwIf(bankUserId == null || bankUserId <= 0, ErrorCode.PARAMS_ERROR, "题库用户id错误");
         ThrowUtil.throwIf(bankCreateTime == null, ErrorCode.PARAMS_ERROR, "题库创建时间错误");
-        ThrowUtil.throwIf(!(bankIsDelete == 1 || bankIsDelete == 8), ErrorCode.PARAMS_ERROR, "题库删除状态错误");
         //3.新增数据补充校验
         if (add) {
             ThrowUtil.throwIf(bankEditTime != null, ErrorCode.PARAMS_ERROR, "题库编辑时间错误");
             ThrowUtil.throwIf(bankUpdateTime != null, ErrorCode.PARAMS_ERROR, "题库更新时间错误");
-            ThrowUtil.throwIf(updateUserId != null, ErrorCode.PARAMS_ERROR, "题库更新用户id错误");
         }
     }
 
@@ -179,8 +176,11 @@ public class QuestionBankServiceImp extends ServiceImpl<QuestionBankMapper, Ques
         HashMap<Long,UserVO> userIdMap = new HashMap<>(userIds.size());
         HashSet<Long> sqlSearchSet = new HashSet<>();
         //1.查询缓存是否存在,不存在去数据库查询
+        @SuppressWarnings("unchecked")
+        ConcurrentMap<Long, UserVO> userVOCacheMap =
+                (ConcurrentMap<Long, UserVO>) (ConcurrentMap<?, ?>) userCache.asMap();
         for(Long userId : userIds) {
-            UserVO userVO = userVOCache.getIfPresent(userId);
+            UserVO userVO = userVOCacheMap.get(userId);
             if(userVO != null) {
                 userIdMap.put(userId, userVO);
             }else{
@@ -199,7 +199,7 @@ public class QuestionBankServiceImp extends ServiceImpl<QuestionBankMapper, Ques
         //Todo 可以优化为线程池异步+Cache.putAll(线程安全)
         userList.stream().map(userService::getUserVO).forEach(user ->{
             userIdMap.put(user.getId(), user);
-            userVOCache.put(user.getId(), user);
+            userVOCacheMap.put(user.getId(), user);
         });
         //3.返回
         return userIdMap;

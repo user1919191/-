@@ -6,12 +6,14 @@ import cn.hutool.json.JSONUtil;
 import com.alibaba.csp.sentinel.Entry;
 import com.alibaba.csp.sentinel.SphU;
 import com.alibaba.csp.sentinel.Tracer;
+import com.alibaba.csp.sentinel.annotation.SentinelResource;
 import com.alibaba.csp.sentinel.slots.block.BlockException;
 import com.alibaba.csp.sentinel.slots.block.degrade.DegradeException;
 import cn.hutool.json.JSONUtil;
 import lombok.extern.slf4j.Slf4j;
 import net.bytebuddy.implementation.bytecode.Throw;
 import net.sf.jsqlparser.statement.Block;
+import org.apache.commons.lang3.ObjectUtils;
 import org.redisson.api.RateIntervalUnit;
 import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.*;
@@ -73,11 +75,13 @@ public class QuestionController {
         if (tags != null) {
             question.setTags(JSONUtil.toJsonStr(tags));
         }
-        BeanUtils.copyProperties(questionAddRequest, question);
-        questionService.validQuestion(question, true);
         //2.2填充敏感数据
         question.setCreateTime(new Date());
         question.setUserId(userService.getLoginUser(request).getId());
+        question.setIsDelete(0);
+        BeanUtils.copyProperties(questionAddRequest, question);
+        //2.3通用校验
+        questionService.validQuestion(question, true);
         //3.保存到数据库
         boolean save = questionService.save(question);
         ThrowUtil.throwIf(!save, ErrorCode.SYSTEM_ERROR,"保存失败");
@@ -93,8 +97,7 @@ public class QuestionController {
      */
     @PostMapping("/delete")
     @SaCheckRole(UserConstant.Admin_Role)
-    public BaseResponse<Boolean> deleteQuestion(DeleteRequest deleteRequest, HttpServletRequest request)
-    {
+    public BaseResponse<Boolean> deleteQuestion(@RequestBody DeleteRequest deleteRequest, HttpServletRequest request) {
         ThrowUtil.throwIf(deleteRequest == null || request == null, ErrorCode.PARAMS_ERROR,"参数不能为空");
         Long deleteRequestId = deleteRequest.getId();
         //1.参数校验
@@ -173,7 +176,6 @@ public class QuestionController {
      * @return
      */
     @GetMapping("/select/page")
-    @SaCheckRole(UserConstant.Admin_Role)
     public BaseResponse<Page<Question>> getQuestionPage(@RequestBody QuestionQueryRequest questionQueryRequest, HttpServletRequest request){
         ThrowUtil.throwIf(questionQueryRequest == null || request == null, ErrorCode.PARAMS_ERROR,"参数不能为空");
         Page<Question> questionPage = questionService.listQuestionByPage(questionQueryRequest);
@@ -187,35 +189,46 @@ public class QuestionController {
      * @return
      */
     @GetMapping("/select/page/vo")
-    @RateLimiter(key = "selectQuestionVOPage", CountTime = 10, LimitCount = 10, timeUnit = RateIntervalUnit.SECONDS, limitType = LimitTypeEnum.REJECT_USER)
-    public BaseResponse<Page<QuestionVO>> getQuestionVOPage(@RequestBody QuestionQueryRequest questionQueryRequest, HttpServletRequest request){
-        ThrowUtil.throwIf(questionQueryRequest == null || request == null, ErrorCode.PARAMS_ERROR,"参数不能为空");
-        //1.使用Sentinel限流
-        //1.1获取IP
-        String remoteAddr = request.getRemoteAddr();
-        Entry entry = null;
-        //1.2基于IP限流
-        try{
-            entry = SphU.entry(SentinelConstant.ListQuestionVoByPage,EntryType.IN,1,remoteAddr);
-            //1.3查寻数据库
-            Page<Question> questionPage = questionService.listQuestionByPage(questionQueryRequest);
-            return ResultUtil.success(questionService.getQuestionVOPage(questionPage, request));
-        } catch (Throwable ex) {
-            if(ex instanceof BlockException){
-                //1.4降级操作
-               if(ex instanceof DegradeException){
-                   //Todo 可以返回本地数据
-                   return ResultUtil.success(null);
-               }
-               //1.5限流操作
-                return  ResultUtil.error(ErrorCode.NOT_FOUND,"访问过于频繁，请稍后再试");
+    @RateLimiter(key = "selectQuestionVOPage", CountTime = 10, LimitCount = 10,
+            timeUnit = RateIntervalUnit.SECONDS, limitType = LimitTypeEnum.REJECT_USER)
+    @SentinelResource(
+            value = SentinelConstant.ListQuestionVoByPage,
+            entryType = EntryType.IN,
+            blockHandler = "handleBlockException",
+            fallback = "handleFallback")
+    public BaseResponse<Page<QuestionVO>> getQuestionVOPage(@RequestBody QuestionQueryRequest questionQueryRequest,
+                                                            HttpServletRequest request) {
+        ThrowUtil.throwIf(questionQueryRequest == null || request == null, ErrorCode.PARAMS_ERROR, "参数不能为空");
+        Page<Question> questionPage = questionService.listQuestionByPage(questionQueryRequest);
+        return ResultUtil.success(questionService.getQuestionVOPage(questionPage, request));
+    }
+
+    /**
+     * 限流策略
+     * @param questionQueryRequest
+     * @param e
+     * @return
+     */
+    public BaseResponse<Page<QuestionVO>> handleBlockException(QuestionQueryRequest questionQueryRequest, HttpServletRequest request,
+                                                               BlockException e) {
+        return ResultUtil.error(ErrorCode.NOT_VISIT, "访问过于频繁，请稍后再试");
+    }
+
+    /**
+     * 降级策略
+     */
+    public BaseResponse<Page<QuestionVO>> handleFallback(QuestionQueryRequest questionQueryRequest, HttpServletRequest request
+            ,DegradeException e){
+
+        try {
+            Page<QuestionVO> questionFromCache = questionService.getQuestionFromCache(questionQueryRequest);
+            if(ObjectUtils.isNotEmpty(questionFromCache)){
+                return ResultUtil.success(questionFromCache);
             }
-            Tracer.trace(ex);
-            return ResultUtil.error(ErrorCode.SYSTEM_ERROR,"系统异常");
-        }finally {
-            if(entry != null){
-                entry.exit(1,remoteAddr);
-            }
+            return ResultUtil.error(ErrorCode.OPERATION_ERROR, "系统繁忙,请稍后再试");
+        } catch (Exception ex) {
+            log.error("从缓存获取问题列表失败", ex);
+            return ResultUtil.error(ErrorCode.SYSTEM_ERROR, "系统服务降级中，请稍后再试");
         }
     }
 
@@ -241,7 +254,7 @@ public class QuestionController {
     }
 
     /**
-     * 更新银狐创建的题目(创建用户使用)
+     * 更新用户创建的题目(创建用户使用)
      * @param editRequest
      * @param request
      * @return
