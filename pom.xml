@@ -100,12 +100,6 @@
             <scope>system</scope>
             <systemPath>${project.basedir}/lib/hotkey-client-0.0.4-SNAPSHOT.jar</systemPath>
         </dependency>
-        <!-- WX小程序 -->
-        <dependency>
-            <groupId>com.github.binarywang</groupId>
-            <artifactId>wx-java-mp-spring-boot-starter</artifactId>
-            <version>4.4.0</version>
-        </dependency>
         <!-- openapi2 -->
         <dependency>
             <groupId>com.github.xiaoymin</groupId>

@@ -36,10 +36,7 @@ import project.utils.SqlUtil;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.LinkedBlockingDeque;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -90,6 +87,9 @@ public class QuestionBankQuestionServiceImp extends ServiceImpl<QuestionBankQues
             ThrowUtil.throwIf(questionCreateTime == null,ErrorCode.PARAMS_ERROR,"创建时间不能为空");
             ThrowUtil.throwIf(questionUpdateTime != null,ErrorCode.PARAMS_ERROR,"新增题目题库关联时更新时间不能存在");
             ThrowUtil.throwIf(changeUserId != null,ErrorCode.PARAMS_ERROR,"新增题目题库关联时更新用户id不能存在");
+        }else{
+            ThrowUtil.throwIf(questionBankQuestionId == null || questionBankQuestionId <= 0
+                    ,ErrorCode.PARAMS_ERROR,"题目题库关联id不能为空");
         }
     }
 
@@ -227,32 +227,45 @@ public class QuestionBankQuestionServiceImp extends ServiceImpl<QuestionBankQues
                 20, 50, 30L, TimeUnit.SECONDS, new LinkedBlockingDeque<>(10000)
                 ,new ThreadPoolExecutor.CallerRunsPolicy());
         //3.2保存所有批次
-        ArrayList<CompletableFuture<Void>> futureList = new ArrayList<>();
+        List<CompletableFuture<Void>> futureList = new ArrayList<>();
         int batchSize = 1000;
         //3.3分批处理,避免长事务
-        int totalQuestionListSize = longList.size();
-        for(int i= 0;i < totalQuestionListSize;i+=batchSize){
-            //生成批次书数据
-            List<Long> subList = longList.subList(i, Math.min(totalQuestionListSize, i + batchSize));
-            List<QuestionBankQuestion> questionBankQuestions = subList.stream().map(question -> {
-                QuestionBankQuestion questionBankQuestion = new QuestionBankQuestion();
-                questionBankQuestion.setQuestionBankId(questionBankId);
-                questionBankQuestion.setQuestionId(question);
-                questionBankQuestion.setUserId(loginUser.getId());
-                return questionBankQuestion;
-            }).collect(Collectors.toList());
-            //3.4获取代理对象
-            QuestionBankQuestionService questionBankQuestionService = (QuestionBankQuestionServiceImp)AopContext.currentProxy();
-            CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
-                questionBankQuestionService.batchAddQuestionsToBankInner(questionBankQuestions);
-            }, threadPool);
-            //3.5将任务添加到异步列表
-            futureList.add(future);
+        int totalQuestionListSize = addQuestionList.size();
+        try {
+            for (int i = 0; i < totalQuestionListSize; i += batchSize) {
+                //生成批次书数据
+                List<Long> subList = addQuestionList.subList(i, Math.min(totalQuestionListSize, i + batchSize));
+                List<QuestionBankQuestion> questionBankQuestions = subList.stream().map(question -> {
+                    QuestionBankQuestion questionBankQuestion = new QuestionBankQuestion();
+                    questionBankQuestion.setQuestionBankId(questionBankId);
+                    questionBankQuestion.setQuestionId(question);
+                    questionBankQuestion.setUserId(loginUser.getId());
+                    return questionBankQuestion;
+                }).collect(Collectors.toList());
+                //3.4获取代理对象,确保事务可以正常执行
+                QuestionBankQuestionService questionBankQuestionService = (QuestionBankQuestionServiceImp) AopContext.currentProxy();
+                //3.5异步处理任务
+                CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
+                    questionBankQuestionService.batchAddQuestionsToBankInner(questionBankQuestions);
+                }, threadPool);
+                futureList.add(future);
+            }
+            //3.6等待所有批次完成操作
+            CompletableFuture.allOf(futureList.toArray(new CompletableFuture[0])).join();
+        }finally {
+            //3.7关闭线程池
+            threadPool.shutdown();
+            //3.8线程池超时未关闭处理
+            try {
+                if (!threadPool.awaitTermination(1, TimeUnit.SECONDS)) {
+                    threadPool.shutdownNow();
+                }
+            } catch (InterruptedException e) {
+                //强制关闭
+                threadPool.shutdownNow();
+                Thread.currentThread().interrupt();
+            }
         }
-        //3.6等待所有任务完成
-        CompletableFuture.allOf(futureList.toArray(new CompletableFuture[0])).join();
-        //3.7关闭线程池
-        threadPool.shutdown();
     }
 
     /**

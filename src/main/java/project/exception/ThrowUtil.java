@@ -33,6 +33,7 @@ public class ThrowUtil {
      * @Param msg 错误信息
      */
     public static void throwIf(boolean condition, ErrorCode errorCode,String msg){
+        //Todo msg返回不到前端,跟踪BusinessException优化
         throwIf(condition,new BusinessException(errorCode,msg));
     }
 }

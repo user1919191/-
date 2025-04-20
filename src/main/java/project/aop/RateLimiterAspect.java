@@ -1,6 +1,7 @@
 package project.aop;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -9,10 +10,14 @@ import org.aspectj.lang.reflect.MethodSignature;
 import org.redisson.api.RRateLimiter;
 import org.redisson.api.RateType;
 import org.redisson.api.RedissonClient;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 import project.annotation.RateLimiter;
+import project.balckFilter.BlackIpUtils;
 import project.common.ErrorCode;
 import project.exception.BusinessException;
+import project.model.entity.User;
+import project.service.UserService;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
@@ -30,6 +35,9 @@ public class RateLimiterAspect {
 
     // 使用ConcurrentHashMap缓存限流器
     private final ConcurrentHashMap<String, RRateLimiter> rateLimiterCache = new ConcurrentHashMap<>();
+
+    @Resource
+    private UserService userService;
 
     @Resource
     private RedissonClient redissonClient;
@@ -56,7 +64,19 @@ public class RateLimiterAspect {
             }
         }
 
+        //Todo 是否可以优化,将封禁信息提交给管理员审核,如果封禁添加到Nacos加入BloomFilter
         if (!limiter.tryAcquire()) {
+            // 触发爬虫限流，封禁账号
+            User loginUser = userService.getLoginUser(request);
+            if(ObjectUtils.isEmpty(loginUser)){
+                //未登录直接封禁IP
+                BlackIpUtils.addBlackIp(getClientIp());
+            }else{
+                //将用户设置为账号封禁
+                loginUser.setUserRole("ban");
+                //将用户踢下线
+                userService.userLogOut(request);
+            }
             log.warn("限流触发 -,key:{},IP:{},user:{}", key,getClientIp(),getUserId());
             throw new BusinessException(ErrorCode.NOT_VISIT);
         }

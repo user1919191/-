@@ -49,7 +49,7 @@ public class BlackIpUtils {
     /**
      * 添加到黑名单
      */
-    public boolean addBlackIp(String ip){
+    public static boolean addBlackIp(String ip){
         return bitMapBloomFilter.add(ip);
     }
 }

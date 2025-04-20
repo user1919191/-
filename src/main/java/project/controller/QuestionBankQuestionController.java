@@ -79,7 +79,7 @@ public class QuestionBankQuestionController {
     @PostMapping("/delete")
     public BaseResponse<Boolean> removeQuestionBankQuestion(@RequestBody DeleteRequest removeRequest, HttpServletRequest request){
         //1.参数校验
-        ThrowUtil.throwIf(removeRequest == null || request == null, ErrorCode.PARAMS_ERROR,"参数为空");
+        ThrowUtil.throwIf(removeRequest == null, ErrorCode.PARAMS_ERROR,"参数为空");
         Long removeRequestId = removeRequest.getId();
         QuestionBankQuestion removeQuestion = questionBankQuestionService.getById(removeRequestId);
         ThrowUtil.throwIf(removeQuestion == null, ErrorCode.PARAMS_ERROR,"要删除的题目Id或题库Id为空");
@@ -153,7 +153,6 @@ public class QuestionBankQuestionController {
         int size = queryRequest.getSize();
         //3.分页获取
         Page<QuestionBankQuestion> pageQBQ = questionBankQuestionService.page(new Page<>(page,size),questionBankQuestionService.getQueryWrapper(queryRequest));
-
         return ResultUtil.success(pageQBQ);
     }
 
@@ -167,7 +166,7 @@ public class QuestionBankQuestionController {
     @RateLimiter(key = "getQuestionBankQuestionVOPage", CountTime = 60 , LimitCount = 30 ,timeUnit = RateIntervalUnit.SECONDS, limitType = LimitTypeEnum.REJECT_USER)
     public BaseResponse<Page<QuestionBankQuestionVO>> getQuestionBankQuestionVOPage(@RequestBody QuestionBankQuestionQueryRequest queryRequest, HttpServletRequest request){
         //1.参数校验
-        ThrowUtil.throwIf(queryRequest == null || request == null, ErrorCode.PARAMS_ERROR,"参数为空");
+        ThrowUtil.throwIf(queryRequest == null, ErrorCode.PARAMS_ERROR,"参数为空");
         //2.获取分页
         int page = queryRequest.getPage();
         int size = queryRequest.getSize();
@@ -219,7 +218,7 @@ public class QuestionBankQuestionController {
     @SaCheckRole(UserConstant.Admin_Role)
     public BaseResponse<Boolean> removeQuestionBankQuestion(@RequestBody QuestionBankQuestionRemoveRequest removeRequest, HttpServletRequest request){
         //1.参数校验
-        ThrowUtil.throwIf(removeRequest == null || request == null, ErrorCode.PARAMS_ERROR,"参数为空");
+        ThrowUtil.throwIf(removeRequest == null, ErrorCode.PARAMS_ERROR,"参数为空");
         //2.数据校验
         Long questionId = removeRequest.getQuestionId();
         Long questionBankId = removeRequest.getQuestionBankId();

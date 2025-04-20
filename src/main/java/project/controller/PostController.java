@@ -40,11 +40,8 @@ public class PostController {
     @Resource
     private UserService userService;
 
-    // region 增删改查
-
     /**
      * 创建
-     *
      * @param postAddRequest
      * @param request
      * @return
@@ -73,7 +70,6 @@ public class PostController {
 
     /**
      * 删除
-     *
      * @param deleteRequest
      * @param request
      * @return
@@ -98,7 +94,6 @@ public class PostController {
 
     /**
      * 更新（仅管理员）
-     *
      * @param postUpdateRequest
      * @return
      */
@@ -126,7 +121,6 @@ public class PostController {
 
     /**
      * 根据 id 获取
-     *
      * @param id
      * @return
      */
@@ -144,7 +138,6 @@ public class PostController {
 
     /**
      * 分页获取列表（仅管理员）
-     *
      * @param postQueryRequest
      * @return
      */
@@ -160,7 +153,6 @@ public class PostController {
 
     /**
      * 分页获取列表（封装类）
-     *
      * @param postQueryRequest
      * @param request
      * @return
@@ -178,7 +170,6 @@ public class PostController {
 
     /**
      * 分页获取当前用户创建的资源列表
-     *
      * @param postQueryRequest
      * @param request
      * @return
@@ -203,7 +194,6 @@ public class PostController {
 
     /**
      * 分页搜索（从 ES 查询，封装类）
-     *
      * @param postQueryRequest
      * @param request
      * @return
@@ -218,7 +208,6 @@ public class PostController {
 
     /**
      * 编辑（用户）
-     *
      * @param postEditRequest
      * @param request
      * @return

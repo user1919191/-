@@ -144,7 +144,7 @@ public class QuestionController {
         //3.3内容数据校验
         questionService.validQuestion(question, false);
         //4.保存到数据库
-        boolean save = questionService.save(question);
+        boolean save = questionService.updateById(question);
         ThrowUtil.throwIf(!save, ErrorCode.SYSTEM_ERROR,"保存失败");
 
         return ResultUtil.success(question.getId());
@@ -190,7 +190,7 @@ public class QuestionController {
      */
     @GetMapping("/select/page/vo")
     @RateLimiter(key = "selectQuestionVOPage", CountTime = 10, LimitCount = 10,
-            timeUnit = RateIntervalUnit.SECONDS, limitType = LimitTypeEnum.REJECT_USER)
+            timeUnit = RateIntervalUnit.SECONDS, limitType = LimitTypeEnum.REJECT_IP)
     @SentinelResource(
             value = SentinelConstant.ListQuestionVoByPage,
             entryType = EntryType.IN,
@@ -260,6 +260,7 @@ public class QuestionController {
      * @return
      */
     @PostMapping("/update/user")
+    @SaCheckRole(UserConstant.Default_Role)
     @RateLimiter(key = "updateQuestionByUser", CountTime = 10, LimitCount = 10, timeUnit = RateIntervalUnit.SECONDS, limitType = LimitTypeEnum.REJECT_USER)
     public BaseResponse<Boolean> updateQuestionCreateByUser(@RequestBody QuestionEditRequest editRequest,HttpServletRequest request){
         //1.参数校验

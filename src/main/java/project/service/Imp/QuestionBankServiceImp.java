@@ -61,7 +61,6 @@ public class QuestionBankServiceImp extends ServiceImpl<QuestionBankMapper, Ques
         Date bankCreateTime = questionBank.getCreateTime();
         Date bankEditTime = questionBank.getEditTime();
         Date bankUpdateTime = questionBank.getUpdateTime();
-        Integer bankIsDelete = questionBank.getIsDelete();
         ThrowUtil.throwIf(StringUtils.isEmpty(bankTitle) || bankTitle.length() <= 1 || bankTitle.length() >= 50
                 , ErrorCode.PARAMS_ERROR, "题库名称错误");
         ThrowUtil.throwIf(StringUtils.isEmpty(bankDescription) || bankDescription.length() <= 1
@@ -74,6 +73,8 @@ public class QuestionBankServiceImp extends ServiceImpl<QuestionBankMapper, Ques
         if (add) {
             ThrowUtil.throwIf(bankEditTime != null, ErrorCode.PARAMS_ERROR, "题库编辑时间错误");
             ThrowUtil.throwIf(bankUpdateTime != null, ErrorCode.PARAMS_ERROR, "题库更新时间错误");
+        }else{
+            ThrowUtil.throwIf(bankId == null || bankId <= 0, ErrorCode.PARAMS_ERROR, "题库id错误");
         }
     }
 

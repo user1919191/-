@@ -179,30 +179,31 @@ public class QuestionServiceImp extends ServiceImpl<QuestionMapper, Question> im
     @Override
     public QuestionVO getQuestionVO(Question question, HttpServletRequest request) {
         //1.参数校验
-        ThrowUtil.throwIf(question == null || request == null || question.getIsDelete().equals(0),
+        ThrowUtil.throwIf(question == null || request == null || question.getIsDelete().equals(1),
                 ErrorCode.PARAMS_ERROR,"问题不存在");
         //2.转化为封装类
         Long id = question.getId();
         //3.先从缓存中获取
         String questionKey = QUESTION_PREFIX + id;
-        if(JdHotKeyStore.isHotKey(questionKey)){
-            JdHotKeyStore.smartSet(questionKey, question);
-            QuestionVO questionCache = (QuestionVO)questionVOCache.getIfPresent(id.toString());
-            if(questionCache!= null){
-                return questionCache;
-            }
-        }
+        QuestionVO cacheQuestionVO = (QuestionVO)questionVOCache.getIfPresent(questionKey);
+        if(ObjectUtils.isNotEmpty(cacheQuestionVO)){
+           return cacheQuestionVO;
+       }
+        //4.转为封装类
         QuestionVO questionVO = QuestionVO.objToVo(question);
         ThrowUtil.throwIf(!questionVO.getId().equals(id), ErrorCode.PARAMS_ERROR,"问题ID不匹配");
         if(questionVO.getId() == null || questionVO.getId() < 0){
             throw new BusinessException(ErrorCode.OPERATION_ERROR, "问题ID不能为空");
         }
         User user = userService.getById(questionVO.getId());
-        ThrowUtil.throwIf(user == null, ErrorCode.OPERATION_ERROR, "用户不存在");
-        UserVO userVO = userService.getUserVO(user);
-        ThrowUtil.throwIf(userVO == null, ErrorCode.OPERATION_ERROR, "用户不存在");
-        questionVO.setUser(userVO);
-
+        if(user == null){
+            questionVO.setUser(null);
+        }else{
+            UserVO userVO = userService.getUserVO(user);
+            questionVO.setUser(userVO);
+        }
+        //存入缓存
+        questionVOCache.put(questionKey, questionVO);
         return questionVO;
     }
 
