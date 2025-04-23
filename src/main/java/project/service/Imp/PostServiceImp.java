@@ -74,7 +74,6 @@ public class PostServiceImp extends ServiceImpl<PostMapper, Post> implements Pos
         //1.参数校验
         ThrowUtil.throwIf(post == null, ErrorCode.PARAMS_ERROR,"帖子不能为空");
         //2.获取数据
-        Long id = post.getId();
         String title = post.getTitle();
         String content = post.getContent();
         String tags = post.getTags();
@@ -152,7 +151,7 @@ public class PostServiceImp extends ServiceImpl<PostMapper, Post> implements Pos
         List<String> orTagList = postQueryRequest.getOrTags();
         Long userId = postQueryRequest.getUserId();
         // es 起始页为 0
-        long current = postQueryRequest.getPage() - 1;
+        long current = postQueryRequest.getPage() ;
         long pageSize = postQueryRequest.getSize();
         String sortField = postQueryRequest.getSortField();
         String sortOrder = postQueryRequest.getSortOrder();
@@ -251,7 +250,7 @@ public class PostServiceImp extends ServiceImpl<PostMapper, Post> implements Pos
         UserVO userVO = userService.getUserVO(user);
         postVO.setUser(userVO);
         // 2. 已登录，获取用户点赞、收藏状态
-        User loginUser = userService.getLoginUserPermitNull(request);
+        User loginUser = userService.getLoginUser(request);
         if (loginUser != null) {
             // 获取点赞
             QueryWrapper<PostThumb> postThumbQueryWrapper = new QueryWrapper<>();

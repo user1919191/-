@@ -16,6 +16,7 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.poi.ss.formula.functions.T;
 import org.redisson.api.RateIntervalUnit;
 import org.springframework.beans.BeanUtils;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.web.bind.annotation.*;
 import project.annotation.RateLimiter;
 import project.common.BaseResponse;
@@ -66,6 +67,10 @@ public class QuestionBankController {
     @Resource
     private QuestionService questionService;
 
+    @Resource
+    @Lazy
+    private QuestionBankQuestionService questionBankQuestionService;
+
     /**
      * 添加题库(管理员功能)
      * @param addRequest
@@ -107,9 +112,8 @@ public class QuestionBankController {
         //2.题库是否存在
         QuestionBank questionBank = questionBankService.getById(requestId);
         ThrowUtil.throwIf(questionBank == null, ErrorCode.NOT_FOUND,"题库不存在");
-        //Todo 如果添加@Resource对于QBQ会出现循环依赖,怎么处理
         //3.删除题库题目关联表
-        boolean remove = questionBankService.removeById(deleteRequest.getId());
+        boolean remove = questionBankQuestionService.removeByQuestionBankId(questionBank.getId());
         ThrowUtil.throwIf(!remove, ErrorCode.OPERATION_ERROR,"删除题目题库关联失败");
         //4.删除题库
         boolean removed = questionBankService.removeById(requestId);
@@ -135,10 +139,9 @@ public class QuestionBankController {
         //3.数据校验
         //Todo validQuestionBank是否可以优化
         User loginUser = userService.getLoginUser(request);
-        questionBankService.validQuestionBank(questionBank,false);
         questionBank.setUpdateTime(new Date());
         //4.更新题库
-        boolean save = questionBankService.save(questionBank);
+        boolean save = questionBankService.updateById(questionBank);
         ThrowUtil.throwIf(!save, ErrorCode.OPERATION_ERROR,"更新失败");
 
         return ResultUtil.success(questionBank.getId());

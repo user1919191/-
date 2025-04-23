@@ -85,7 +85,7 @@ public class QuestionBankQuestionController {
         ThrowUtil.throwIf(removeQuestion == null, ErrorCode.PARAMS_ERROR,"要删除的题目Id或题库Id为空");
         //2.权限校验
         User loginUser = userService.getLoginUser(request);
-        ThrowUtil.throwIf(!loginUser.getId().equals(removeQuestion.getUserId()) || !loginUser.getUserRole().equals(UserConstant.Admin_Role), ErrorCode.NOT_ROLE,"权限不足");
+        ThrowUtil.throwIf(!loginUser.getId().equals(removeQuestion.getUserId()) && !loginUser.getUserRole().equals(UserConstant.Admin_Role), ErrorCode.NOT_ROLE,"权限不足");
         //3.执行删除操作
         boolean removeSuccess = questionBankQuestionService.removeById(removeRequestId);
         ThrowUtil.throwIf(!removeSuccess, ErrorCode.PARAMS_ERROR,"删除失败");

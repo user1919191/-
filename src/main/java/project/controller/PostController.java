@@ -27,6 +27,7 @@ import project.service.UserService;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.util.Date;
 import java.util.List;
 
 @RestController
@@ -57,11 +58,13 @@ public class PostController {
         if (tags != null) {
             post.setTags(JSONUtil.toJsonStr(tags));
         }
-        postService.validPost(post, true);
         User loginUser = userService.getLoginUser(request);
         post.setUserId(loginUser.getId());
         post.setFavourNum(0);
         post.setThumbNum(0);
+        post.setCreateTime(new Date());
+        post.setIsDelete(0);
+        postService.validPost(post, true);
         boolean result = postService.save(post);
         ThrowUtil.throwIf(!result, ErrorCode.OPERATION_ERROR);
         long newPostId = post.getId();
@@ -217,7 +220,8 @@ public class PostController {
         if (postEditRequest == null || postEditRequest.getId() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        Post post = new Post();
+        Post post = postService.getById(postEditRequest.getId());
+        ThrowUtil.throwIf(post == null, ErrorCode.NOT_FOUND,"帖子已被删除");
         BeanUtils.copyProperties(postEditRequest, post);
         List<String> tags = postEditRequest.getTags();
         if (tags != null) {

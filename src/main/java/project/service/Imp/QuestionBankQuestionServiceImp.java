@@ -73,7 +73,6 @@ public class QuestionBankQuestionServiceImp extends ServiceImpl<QuestionBankQues
         Long questionUserId = questionBankQuestion.getUserId();
         Date questionCreateTime = questionBankQuestion.getCreateTime();
         Date questionUpdateTime = questionBankQuestion.getUpdateTime();
-        Long changeUserId = questionBankQuestion.getChangeUserId();
 
         //3.通用数据校验
         ThrowUtil.throwIf(questionId == null || questionId <= 0,ErrorCode.PARAMS_ERROR,"题目id不能为空");
@@ -86,7 +85,6 @@ public class QuestionBankQuestionServiceImp extends ServiceImpl<QuestionBankQues
         if(add){
             ThrowUtil.throwIf(questionCreateTime == null,ErrorCode.PARAMS_ERROR,"创建时间不能为空");
             ThrowUtil.throwIf(questionUpdateTime != null,ErrorCode.PARAMS_ERROR,"新增题目题库关联时更新时间不能存在");
-            ThrowUtil.throwIf(changeUserId != null,ErrorCode.PARAMS_ERROR,"新增题目题库关联时更新用户id不能存在");
         }else{
             ThrowUtil.throwIf(questionBankQuestionId == null || questionBankQuestionId <= 0
                     ,ErrorCode.PARAMS_ERROR,"题目题库关联id不能为空");
@@ -325,4 +323,21 @@ public class QuestionBankQuestionServiceImp extends ServiceImpl<QuestionBankQues
             throw new BusinessException(ErrorCode.OPERATION_ERROR, "向题库添加题目失败");
         }
     }
+
+    /**
+     * 根据题库Id删除关联
+     * @param questionBankId
+     * @return
+     */
+    public boolean removeByQuestionBankId(long questionBankId){
+        LambdaQueryWrapper<QuestionBankQuestion> queryWrapper = Wrappers.lambdaQuery(QuestionBankQuestion.class)
+                .eq(QuestionBankQuestion::getQuestionBankId, questionBankId);
+        boolean remove = true;
+        Long count = baseMapper.selectCount(queryWrapper);
+        if(count != null && count != 0){
+            remove = this.remove(queryWrapper);
+        }
+        return true;
+    }
+
 }

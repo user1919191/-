@@ -172,12 +172,12 @@ public class QuestionController {
     /**
      * 分页获取题目列表(管理员可用)
      * @param questionQueryRequest
-     * @param request
      * @return
      */
-    @GetMapping("/select/page")
-    public BaseResponse<Page<Question>> getQuestionPage(@RequestBody QuestionQueryRequest questionQueryRequest, HttpServletRequest request){
-        ThrowUtil.throwIf(questionQueryRequest == null || request == null, ErrorCode.PARAMS_ERROR,"参数不能为空");
+    @PostMapping("/select/page")
+    @SaCheckRole(UserConstant.Admin_Role)
+    public BaseResponse<Page<Question>> getQuestionPage(@RequestBody QuestionQueryRequest questionQueryRequest){
+        ThrowUtil.throwIf(questionQueryRequest == null, ErrorCode.PARAMS_ERROR,"参数不能为空");
         Page<Question> questionPage = questionService.listQuestionByPage(questionQueryRequest);
         return ResultUtil.success(questionPage);
     }
@@ -188,7 +188,7 @@ public class QuestionController {
      * @param request
      * @return
      */
-    @GetMapping("/select/page/vo")
+    @PostMapping("/select/page/vo")
     @RateLimiter(key = "selectQuestionVOPage", CountTime = 10, LimitCount = 10,
             timeUnit = RateIntervalUnit.SECONDS, limitType = LimitTypeEnum.REJECT_IP)
     @SentinelResource(
@@ -238,7 +238,7 @@ public class QuestionController {
      * @param request
      * @return
      */
-    @GetMapping("/select/page/user")
+    @PostMapping("/select/page/user")
     @RateLimiter(key = "selectQuestionVOPageByUser", CountTime = 10, LimitCount = 10, timeUnit = RateIntervalUnit.SECONDS, limitType = LimitTypeEnum.REJECT_USER)
     public BaseResponse<Page<QuestionVO>> getQuestionPageCreateByUser(@RequestBody QuestionQueryRequest questionQueryRequest, HttpServletRequest request){
         //1.参数校验

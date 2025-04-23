@@ -76,6 +76,13 @@ public interface QuestionBankQuestionService extends IService<QuestionBankQuesti
      */
     @Transactional(rollbackFor = Exception.class)
     void batchAddQuestionsToBankInner(List<QuestionBankQuestion> questionBankQuestions);
+
+    /**
+     * 根据题库Id删除题目题库关联
+     * @param questionBankId
+     * @return
+     */
+    boolean removeByQuestionBankId(long questionBankId);
 }
 
 
