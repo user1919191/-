@@ -22,6 +22,7 @@ import org.elasticsearch.search.sort.SortBuilder;
 import org.elasticsearch.search.sort.SortBuilders;
 import org.elasticsearch.search.sort.SortOrder;
 import org.redisson.api.RedissonClient;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.elasticsearch.core.ElasticsearchRestTemplate;
 import org.springframework.data.elasticsearch.core.SearchHit;
@@ -77,6 +78,7 @@ public class QuestionServiceImp extends ServiceImpl<QuestionMapper, Question> im
     private UserService userService;
 
     @Resource
+    @Lazy
     private QuestionBankQuestionService questionBackQuestionService;
 
     @Resource
@@ -122,6 +124,20 @@ public class QuestionServiceImp extends ServiceImpl<QuestionMapper, Question> im
             //Todo 踩坑笔记:Question的主键为雪花算法生成,只有当插入数据库时才自动生成(如果未指定),所以在插入前不能判断Id为null,否则会报错
             ThrowUtil.throwIf(questionId == null || (questionId <= 0), ErrorCode.PARAMS_ERROR, "问题ID不能为负数或空");
         }
+    }
+
+    /**
+     * 保存题目
+     * @param question
+     * @return
+     */
+    @Override
+    public boolean saveQuestion(Question question) {
+        //1.保存到数据库
+        boolean save = this.save(question);
+        //2.异步保存到ES
+        //Todo 使用Canal还是MQ?
+        return true;
     }
 
     /**

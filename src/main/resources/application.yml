@@ -9,12 +9,6 @@ spring:
   mvc:
     pathmatch:
       matching-strategy: ant_path_matcher
-  # session 配置
-  session:
-    # todo 取消注释开启分布式 session（须先配置 Redis）
-    # store-type: redis
-    # 30 天过期
-    timeout: 2592000
   # 数据库配置
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -158,7 +152,6 @@ sa-token:
 # 微信相关
 wx:
   # 微信公众平台
-
   mp:
     token: xxx
     aesKey: xxx
@@ -172,7 +165,6 @@ wx:
         port: 6379
       type: Memory
   # 微信开放平台
-
   open:
     appId: xxx
     appSecret: xxx
@@ -194,6 +186,18 @@ knife4j:
         api-rule: package
         api-rule-resources:
           - project.controller
-#AI大模型接口Api
+#接口文档 http://localhost:8101/api/doc.html#/home
+
+#AI大模型接口API
 ai:
   apiKey: a5250c48-35cd-451b-a7be-1f4d3edd8eb7
+#RoketMQ消息队列
+rocketmq:
+  name-server: 192.168.21.190:9876  # NameServer 地址
+  producer:
+    group: my-producer-group   # 生产者组（需唯一）
+    send-message-timeout: 3000 # 发送超时（毫秒）
+    retry-times-when-send-failed: 2 # 发送失败重试次数
+  consumer:
+    group: my-consumer-group   # 消费者组（需唯一）
+    consume-thread-max: 20     # 最大消费线程数

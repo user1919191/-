@@ -10,6 +10,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.ObjectUtils;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import project.common.ErrorCode;
 import project.constant.CommonConstant;
@@ -38,6 +39,7 @@ import java.util.stream.Collectors;
 public class QuestionBankServiceImp extends ServiceImpl<QuestionBankMapper, QuestionBank> implements QuestionBankService {
 
     @Resource(name = "userCache")
+    @Lazy
     private Cache<String, Object> userCache;
 
     @Resource

@@ -22,6 +22,11 @@ public interface QuestionService extends IService<Question> {
     void validQuestion(Question question , boolean add);
 
     /**
+     * 保存题目到数据库
+     */
+    boolean saveQuestion(Question question);
+
+    /**
      * 获取查询条件
      *
      * @param questionQueryRequest

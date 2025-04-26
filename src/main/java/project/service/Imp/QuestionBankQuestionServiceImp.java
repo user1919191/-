@@ -48,10 +48,10 @@ import java.util.stream.Stream;
 public class QuestionBankQuestionServiceImp extends ServiceImpl<QuestionBankQuestionMapper, QuestionBankQuestion> implements QuestionBankQuestionService {
 
     @Resource
-    @Lazy
     private QuestionService questionService;
 
     @Resource
+    @Lazy
     private QuestionBankService questionBankService;
 
     @Resource

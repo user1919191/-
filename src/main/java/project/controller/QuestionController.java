@@ -83,7 +83,7 @@ public class QuestionController {
         //2.3通用校验
         questionService.validQuestion(question, true);
         //3.保存到数据库
-        boolean save = questionService.save(question);
+        boolean save = questionService.saveQuestion(question);
         ThrowUtil.throwIf(!save, ErrorCode.SYSTEM_ERROR,"保存失败");
         //.返回新ID
         return ResultUtil.success(question.getId());
