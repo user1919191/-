@@ -2,11 +2,12 @@ package project.model.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
-
-import javax.validation.constraints.Pattern;
-import javax.validation.constraints.Size;
 import java.io.Serializable;
 import java.util.Date;
+/**
+ * @author 我要大声哈哈哈哈(user1919191)
+ * @Profieession https://github.com/user1919191
+ */
 
 /**
  * 用户

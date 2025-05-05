@@ -10,7 +10,12 @@ import org.springframework.context.annotation.Configuration;
 import org.redisson.config.Config;
 
 /**
- * Redisson 配置
+ * @author 我要大声哈哈哈哈(user1919191)
+ * @Profieession https://github.com/user1919191
+ */
+
+/**
+ * Redisson配置类
  */
 
 @Configuration

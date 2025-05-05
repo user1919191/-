@@ -9,8 +9,6 @@ import java.util.List;
 
 /**
  * 查询请求
- *
- 
  */
 @EqualsAndHashCode(callSuper = true)
 @Data

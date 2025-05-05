@@ -31,6 +31,7 @@ import project.model.entity.RetryThumb;
 import project.model.entity.User;
 import project.model.enums.LimitTypeEnum;
 import project.service.Imp.PostThumbServiceImp;
+import project.service.PostService;
 import project.service.PostThumbService;
 import project.service.UserService;
 
@@ -40,6 +41,14 @@ import javax.validation.constraints.Pattern;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+/**
+ * @author 我要大声哈哈哈哈(user1919191)
+ * @Profieession https://github.com/user1919191
+ */
+
+/**
+ * 帖子点赞接口
+ */
 
 @RestController
 @RequestMapping("/post_thumb")
@@ -89,6 +98,9 @@ public class PostThumbController {
     @Resource
     private UserService userService;
 
+    @Resource
+    private PostService postService;
+
     /**
      * 点赞/取消点赞
      * @param thumbRequest
@@ -107,7 +119,15 @@ public class PostThumbController {
         ThrowUtil.throwIf(loginUser == null, ErrorCode.NOT_LOGIN, "用户未登录");
         //3.业务处理
         int doPostThumb = postThumbService.doPostThumb(postId, loginUser);
-        return ResultUtil.success(doPostThumb);
+        boolean increased = false;
+        if(doPostThumb == 1){
+            increased = postService.getById(postId).IncreaseThumb();
+        }else{
+            if(doPostThumb == -1){
+                increased = postService.getById(postId).DecreaseThumb();
+            }
+        }
+        return ResultUtil.success( increased ? doPostThumb : 0 );
     }
 
     /**
@@ -147,7 +167,7 @@ public class PostThumbController {
                 }
                 //添加键值对到Redis
                 redissonClient.getBucket(key).set(1);
-                //5.添加到延迟队列
+                //5.添加到本地延迟队列
                 boolean added = delayedQueue.add(retryThumb);
                 ThrowUtil.throwIf(!added, ErrorCode.OPERATION_ERROR, "点赞失败");
             }

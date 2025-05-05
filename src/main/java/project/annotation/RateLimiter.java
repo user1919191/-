@@ -1,6 +1,5 @@
 package project.annotation;
 
-import org.apache.poi.ss.formula.functions.T;
 import org.redisson.api.RateIntervalUnit;
 import project.model.enums.LimitTypeEnum;
 
@@ -8,9 +7,15 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
-import java.util.concurrent.TimeUnit;
 
-import static java.util.concurrent.TimeUnit.*;
+/**
+ * @author 我要大声哈哈哈哈(user1919191)
+ * @Profieession https://github.com/user1919191
+ */
+
+/**
+ * 限流注解
+ */
 
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)

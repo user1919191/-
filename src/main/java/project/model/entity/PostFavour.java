@@ -1,13 +1,14 @@
 package project.model.entity;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
 
 import java.io.Serializable;
 import java.util.Date;
+/**
+ * @author 我要大声哈哈哈哈(user1919191)
+ * @Profieession https://github.com/user1919191
+ */
 
 /**
  * 帖子收藏
@@ -41,6 +42,12 @@ public class PostFavour implements Serializable {
      * 更新时间
      */
     private Date updateTime;
+
+    /**
+     * 现在是否收藏
+     */
+    @TableLogic
+    private int isFavour;
 
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;

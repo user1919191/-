@@ -6,6 +6,7 @@ import lombok.Data;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.elasticsearch.annotations.Document;
 import org.springframework.data.elasticsearch.annotations.Field;
 import org.springframework.data.elasticsearch.annotations.FieldType;
 import project.model.entity.Post;
@@ -13,14 +14,15 @@ import project.model.entity.Post;
 import java.io.Serializable;
 import java.util.Date;
 import java.util.List;
+/**
+ * @author 我要大声哈哈哈哈(user1919191)
+ * @Profieession https://github.com/user1919191
+ */
 
 /**
  * 帖子 ES 包装类
- *
- 
  **/
-// todo 取消注释开启 ES（须先配置 ES）
-//@Document(indexName = "post")
+@Document(indexName = "post")
 @Data
 public class PostEsDTO implements Serializable {
 

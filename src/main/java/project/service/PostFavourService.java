@@ -9,6 +9,11 @@ import project.model.entity.PostFavour;
 import project.model.entity.User;
 
 /**
+ * @author 我要大声哈哈哈哈(user1919191)
+ * @Profieession https://github.com/user1919191
+ */
+
+/**
  * 帖子收藏服务
  */
 public interface PostFavourService extends IService<PostFavour> {

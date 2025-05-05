@@ -14,8 +14,14 @@ import project.model.entity.Question;
 import java.io.Serializable;
 import java.util.Date;
 import java.util.List;
+/**
+ * @author 我要大声哈哈哈哈(user1919191)
+ * @Profieession https://github.com/user1919191
+ */
 
-// todo 取消注释开启 ES（须先配置 ES）
+/**
+ * ES问题表实体类
+ */
 @Document(indexName = "question")
 @Data
 public class QuestionEsDTO implements Serializable {

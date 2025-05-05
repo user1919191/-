@@ -4,6 +4,14 @@ import org.apache.poi.ss.formula.functions.Rate;
 import org.redisson.api.RateIntervalUnit;
 
 import java.util.concurrent.TimeUnit;
+/**
+ * @author 我要大声哈哈哈哈(user1919191)
+ * @Profieession https://github.com/user1919191
+ */
+
+/**
+ * 限流时间转化枚举
+ */
 
 public enum RateIntercvalEnum {
     NANOSECONDS,

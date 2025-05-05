@@ -4,14 +4,12 @@ server:
   port: 8101
 spring:
   # 数据库配置
-  # todo 需替换配置
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://localhost:3306/mianshiya
     username: root
     password: 123456
   # Redis 配置
-  # todo 需替换配置
   redis:
     database: 1
     host: localhost
@@ -19,7 +17,6 @@ spring:
     timeout: 5000
     password: 123456
   # Elasticsearch 配置
-  # todo 需替换配置
   elasticsearch:
     uris: http://localhost:9200
     username: root

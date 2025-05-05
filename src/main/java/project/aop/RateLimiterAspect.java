@@ -27,6 +27,10 @@ import javax.servlet.http.HttpSession;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * @author 我要大声哈哈哈哈(user1919191)
+ * @Profieession https://github.com/user1919191
+ */
 
 /**
  * 防止爬虫AOP切面
@@ -98,6 +102,7 @@ public class RateLimiterAspect {
                     }else{
                         //将用户设置为账号封禁
                         loginUser.setUserRole("ban");
+                        userService.updateById(loginUser);
                         //将用户踢下线
                         userService.userLogOut(request);
                     }

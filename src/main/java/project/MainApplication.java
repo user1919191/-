@@ -9,12 +9,14 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import project.config.AiConfig;
+/**
+ * @author 我要大声哈哈哈哈(user1919191)
+ * @Profieession https://github.com/user1919191
+ */
 
 /**
  * 主类（项目启动入口）
- *
  */
-// todo 如需开启 Redis，须移除 exclude 中的内容
 @SpringBootApplication
 @MapperScan("project.mapper")
 @EnableConfigurationProperties(AiConfig.class)

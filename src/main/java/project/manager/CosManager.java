@@ -9,6 +9,10 @@ import project.config.CosClientConfig;
 
 import javax.annotation.Resource;
 import java.io.File;
+/**
+ * @author 我要大声哈哈哈哈(user1919191)
+ * @Profieession https://github.com/user1919191
+ */
 
 /**
  * Cos文件上传管理器

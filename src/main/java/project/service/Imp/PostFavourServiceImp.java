@@ -22,6 +22,14 @@ import project.service.UserService;
 import javax.annotation.Resource;
 import javax.print.ServiceUI;
 import java.util.Date;
+/**
+ * @author 我要大声哈哈哈哈(user1919191)
+ * @Profieession https://github.com/user1919191
+ */
+
+/**
+ * 帖子收藏服务实现类
+ */
 
 @Service
 public class PostFavourServiceImp extends ServiceImpl<PostFavourMapper, PostFavour> implements PostFavourService {

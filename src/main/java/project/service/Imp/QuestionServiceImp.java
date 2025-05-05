@@ -8,20 +8,14 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.jd.platform.hotkey.client.callback.JdHotKeyStore;
-import jodd.time.TimeUtil;
-import net.bytebuddy.implementation.bytecode.Throw;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.checkerframework.checker.nullness.qual.NonNull;
-import org.elasticsearch.action.support.nodes.BaseNodeRequest;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.sort.SortBuilder;
 import org.elasticsearch.search.sort.SortBuilders;
 import org.elasticsearch.search.sort.SortOrder;
-import org.redisson.api.RedissonClient;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.elasticsearch.core.ElasticsearchRestTemplate;
@@ -32,7 +26,7 @@ import org.springframework.data.elasticsearch.core.query.NativeSearchQueryBuilde
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import project.common.BaseResponse;
+import org.springframework.transaction.support.TransactionTemplate;
 import project.common.ErrorCode;
 import project.constant.CommonConstant;
 import project.exception.BusinessException;
@@ -56,6 +50,14 @@ import javax.servlet.http.HttpServletRequest;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
+/**
+ * @author 我要大声哈哈哈哈(user1919191)
+ * @Profieession https://github.com/user1919191
+ */
+
+/**
+ * 问题实现类
+ */
 
 @Service
 public class QuestionServiceImp extends ServiceImpl<QuestionMapper, Question> implements QuestionService {
@@ -66,10 +68,15 @@ public class QuestionServiceImp extends ServiceImpl<QuestionMapper, Question> im
     private final String QUESTION_PREFIX = "question:";
 
     /**
-     * 本地JVM缓存
+     * 本地Caffeine缓存
      */
     @Resource(name ="questionCache")
     private Cache<String, Object> questionVOCache;
+
+    /**
+     * 事务式编程
+     */
+    private TransactionTemplate transactionTemplate;
 
     @Resource
     private ElasticsearchRestTemplate elasticsearchRestTemplate;
@@ -141,6 +148,61 @@ public class QuestionServiceImp extends ServiceImpl<QuestionMapper, Question> im
     }
 
     /**
+     * 根据ID删除题目
+     * @param quesiton
+     * @return
+     */
+    //Todo 优化事务粒度
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean deleteQuestionById(Question quesiton) {
+        //1.参数校验
+        Long questionId = quesiton.getId();
+        String cacheQuestionId = QUESTION_PREFIX + questionId;
+        ThrowUtil.throwIf(questionId == null, ErrorCode.PARAMS_ERROR
+                ,"增加题目错误,请重试");
+        //2.删除数据库
+        //3.更新HotKey
+        //Todo 将值设置为null,避免热Key高并发造成数据库崩溃
+        //4.更新Caffeine
+        // 5.返回结果
+            //2.删除数据库
+            boolean saved = updateById(quesiton);
+            //3.更新HotKey
+            if (JdHotKeyStore.isHotKey(cacheQuestionId)) {
+                JdHotKeyStore.remove(cacheQuestionId);
+                //Todo 将值设置为null,避免热Key高并发造成数据库崩溃
+                questionVOCache.put(questionId.toString(), null);
+            }
+            //4.更新Caffeine
+            questionVOCache.invalidate(questionId);
+            // 5.返回结果
+            return saved;
+    }
+
+    /**
+     * 根据ID更新题目
+     * @param question
+     * @return
+     */
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public boolean updateQuestion(Question question) {
+            //1.更新数据库
+            boolean updated = updateById(question);
+            //2.更新HotKey
+            Long questionId = question.getId();
+            String cacheQustion = QUESTION_PREFIX + questionId;
+            if(JdHotKeyStore.isHotKey(cacheQustion)){
+                JdHotKeyStore.remove(cacheQustion);
+            }
+            //3.更新Caffeine
+            questionVOCache.put(questionId.toString(),question);
+            //4.返回结果
+            return updated;
+    }
+
+    /**
      * 获取查询条件
      * @param questionQueryRequest
      * @return
@@ -187,6 +249,34 @@ public class QuestionServiceImp extends ServiceImpl<QuestionMapper, Question> im
     }
 
     /**
+     * 根据ID获取问题(优先缓存)
+     * @param id
+     * @return
+     */
+    @Override
+    public Question getQuestionById(long id) {
+        //1.从Caffeine从获取
+        Object cacheQuestion = questionVOCache.getIfPresent(id);
+        if(cacheQuestion!= null){
+            return (Question) cacheQuestion;
+        }
+        //2.从HotKey中获取
+        String hotKeyQuestion = QUESTION_PREFIX + id;
+        if(JdHotKeyStore.isHotKey(hotKeyQuestion)){
+            Question question = (Question) JdHotKeyStore.get(hotKeyQuestion);
+            JdHotKeyStore.smartSet(hotKeyQuestion, question);
+            return question;
+        }
+        //3.如果不存在,从数据库查询
+        Question question = getById(id);
+        ThrowUtil.throwIf(question == null, ErrorCode.PARAMS_ERROR, "问题不存在");
+        //4.存入缓存
+        //Todo 有无优化必要(异步)
+        questionVOCache.put(Long.toString(id), question);
+        return question;
+    }
+
+    /**
      * 获取问题封装
      * @param question
      * @param request
@@ -205,6 +295,11 @@ public class QuestionServiceImp extends ServiceImpl<QuestionMapper, Question> im
         if(ObjectUtils.isNotEmpty(cacheQuestionVO)){
            return cacheQuestionVO;
        }
+        //3.2从HotKey中获取
+        if(JdHotKeyStore.isHotKey(questionKey)){
+            Question questionCache = (Question) JdHotKeyStore.get(questionKey);
+            return QuestionVO.objToVo(questionCache);
+        }
         //4.转为封装类
         QuestionVO questionVO = QuestionVO.objToVo(question);
         ThrowUtil.throwIf(!questionVO.getId().equals(id), ErrorCode.PARAMS_ERROR,"问题ID不匹配");
@@ -219,7 +314,7 @@ public class QuestionServiceImp extends ServiceImpl<QuestionMapper, Question> im
             questionVO.setUser(userVO);
         }
         //存入缓存
-        questionVOCache.put(questionKey, questionVO);
+        questionVOCache.put(id.toString(), questionVO);
         return questionVO;
     }
 
@@ -229,7 +324,6 @@ public class QuestionServiceImp extends ServiceImpl<QuestionMapper, Question> im
      * @param request
      * @return
      */
-    //Todo 加入Sentinel限流,在降级策略中返回本地数据(Caffeine)
     @Override
     public Page<QuestionVO> getQuestionVOPage(Page<Question> questionPage, HttpServletRequest request) {
         //1.参数校验
@@ -392,17 +486,11 @@ public class QuestionServiceImp extends ServiceImpl<QuestionMapper, Question> im
             //逻辑删除题目
             boolean result = this.removeById(questionId);
             ThrowUtil.throwIf(!result, ErrorCode.OPERATION_ERROR, "删除题目失败");
-            //Todo 从缓存中删除题目(优化点:批量设置逻辑删除,删除缓存)
-            String deleteKey = QUESTION_PREFIX + questionId;
-            if(questionVOCache.getIfPresent(deleteKey) != null){
-                boolean add = cacheDeleteList.add(deleteKey);
-                ThrowUtil.throwIf(!add, ErrorCode.OPERATION_ERROR, "删除缓存失败");
-            }
             //批量从缓存中删除
             questionVOCache.invalidateAll(cacheDeleteList);
             LambdaQueryWrapper<QuestionBankQuestion> lambdaQueryWrapper = Wrappers.lambdaQuery(QuestionBankQuestion.class)
                     .eq(QuestionBankQuestion::getQuestionId, questionId);
-            result = questionBackQuestionService.remove(lambdaQueryWrapper);
+            questionBackQuestionService.remove(lambdaQueryWrapper);
         }
     }
     /**
@@ -440,7 +528,7 @@ public class QuestionServiceImp extends ServiceImpl<QuestionMapper, Question> im
             question.setUserId(user.getId());
             question.setCreateTime(new Date());
             question.setTags("[\"待审核\"]");
-            question.setAnswer(aiGenerateQuestionAnswer(title));
+            question.setContent(aiGenerateQuestionAnswer(title));
             return question;
         }, pool)).collect(Collectors.toList()).stream().map(CompletableFuture::join).collect(Collectors.toList());
         //批量保存题目

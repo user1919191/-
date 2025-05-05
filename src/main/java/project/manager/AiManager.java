@@ -13,6 +13,10 @@ import project.exception.BusinessException;
 import javax.annotation.Resource;
 import java.util.ArrayList;
 import java.util.List;
+/**
+ * @author 我要大声哈哈哈哈(user1919191)
+ * @Profieession https://github.com/user1919191
+ */
 
 /**
  * 通用的 AI 调用类

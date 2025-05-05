@@ -1,6 +1,10 @@
 package project.utils;
 
 import org.apache.commons.lang3.StringUtils;
+/**
+ * @author 我要大声哈哈哈哈(user1919191)
+ * @Profieession https://github.com/user1919191
+ */
 
 /**
  * SQL工具类

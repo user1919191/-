@@ -33,6 +33,14 @@ import javax.servlet.http.HttpServletRequest;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+/**
+ * @author 我要大声哈哈哈哈(user1919191)
+ * @Profieession https://github.com/user1919191
+ */
+
+/**
+ * 题目题库关联接口
+ */
 
 @RestController
 @RequestMapping("/questionBankQuestion")

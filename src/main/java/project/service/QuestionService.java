@@ -11,6 +11,14 @@ import project.model.vo.QuestionVO;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
+/**
+ * @author 我要大声哈哈哈哈(user1919191)
+ * @Profieession https://github.com/user1919191
+ */
+
+/**
+ * 题目业务接口
+ */
 
 public interface QuestionService extends IService<Question> {
 
@@ -27,6 +35,20 @@ public interface QuestionService extends IService<Question> {
     boolean saveQuestion(Question question);
 
     /**
+     * 根据ID删除题目
+     * @param question
+     * @return
+     */
+    boolean deleteQuestionById(Question question);
+
+    /**
+     * 更新题目
+     * @param question
+     * @return
+     */
+    boolean updateQuestion(Question question);
+
+    /**
      * 获取查询条件
      *
      * @param questionQueryRequest
@@ -34,6 +56,12 @@ public interface QuestionService extends IService<Question> {
      */
     QueryWrapper<Question> getQueryWrapper(QuestionQueryRequest questionQueryRequest);
 
+    /**
+     * 根据题目ID获取题目封装
+     * @param id
+     * @return
+     */
+    Question getQuestionById(long id);
     /**
      * 获取题目封装
      *

@@ -43,6 +43,15 @@ import javax.servlet.http.HttpServletRequest;
 import java.util.Date;
 import java.util.List;
 
+/**
+ * @author 我要大声哈哈哈哈(user1919191)
+ * @Profieession https://github.com/user1919191
+ */
+
+/**
+ * 题目接口
+ */
+
 @RequestMapping("/question")
 @RestController
 @Slf4j
@@ -104,16 +113,16 @@ public class QuestionController {
         ThrowUtil.throwIf(deleteRequestId == null, ErrorCode.PARAMS_ERROR,"参数不能为空");
         //2.1权限再次校验
         Question question = questionService.getById(deleteRequestId);
-        ThrowUtil.throwIf(question == null || question.getUserId() != null, ErrorCode.PARAMS_ERROR,"题目不存在");
+        ThrowUtil.throwIf(question == null || question.getUserId() == null, ErrorCode.PARAMS_ERROR,"题目不存在");
         Long id = userService.getLoginUser(request).getId();
-        if(!question.getUserId().equals(id) || !userService.isAdmin(request)){
+        if(!question.getUserId().equals(id) && !userService.isAdmin(request)){
             throw new BusinessException(ErrorCode.NOT_ROLE,"您没有删除题目权限");
         }
         //2.2从数据库中删除
         question.setIsDelete(1);
         question.setEditTime(new Date());
         question.setCloseChangeId(id);
-        boolean save = questionService.save(question);
+        boolean save = questionService.deleteQuestionById(question);
         ThrowUtil.throwIf(!save, ErrorCode.OPERATION_ERROR,"删除失败");
         return ResultUtil.success(true);
     }
@@ -144,7 +153,7 @@ public class QuestionController {
         //3.3内容数据校验
         questionService.validQuestion(question, false);
         //4.保存到数据库
-        boolean save = questionService.updateById(question);
+        boolean save = questionService.updateQuestion(question);
         ThrowUtil.throwIf(!save, ErrorCode.SYSTEM_ERROR,"保存失败");
 
         return ResultUtil.success(question.getId());
@@ -163,9 +172,9 @@ public class QuestionController {
         ThrowUtil.throwIf(request == null,ErrorCode.PARAMS_ERROR,"参数不能为空");
         ThrowUtil.throwIf(id <= 0, ErrorCode.PARAMS_ERROR,"查询题目ID不合法");
         //2.查询题目
-        Question question = questionService.getById(id);
+        Question question = questionService.getQuestionById(id);
         ThrowUtil.throwIf(question == null, ErrorCode.PARAMS_ERROR,"题目不存在");
-
+        //3.返回结果
         return ResultUtil.success(questionService.getQuestionVO(question,request));
     }
 

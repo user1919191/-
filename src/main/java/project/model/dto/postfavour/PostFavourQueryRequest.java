@@ -9,9 +9,12 @@ import project.model.dto.post.PostQueryRequest;
 import java.io.Serializable;
 
 /**
+ * @author 我要大声哈哈哈哈(user1919191)
+ * @Profieession https://github.com/user1919191
+ */
+
+/**
  * 帖子收藏查询请求
- *
- 
  */
 @Data
 @EqualsAndHashCode(callSuper = true)

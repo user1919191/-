@@ -32,6 +32,14 @@ import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
 import java.util.List;
+/**
+ * @author 我要大声哈哈哈哈(user1919191)
+ * @Profieession https://github.com/user1919191
+ */
+
+/**
+ * 用户接口
+ */
 
 @Slf4j
 @RestController
@@ -127,7 +135,7 @@ public class UserController {
         if(userAddRequest.getUserAccount().length() < 4 || userAddRequest.getUserAccount().length() > 20) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR,"用户账号格式错误");
         }
-        if(!StrUtil.containsAnyIgnoreCase(userAddRequest.getUserAccount(),"admin","user")) {
+        if(!StrUtil.containsAnyIgnoreCase(userAddRequest.getUserRole(),"Admin","User")) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR,"用户角色错误");
         }
 
