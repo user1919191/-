@@ -31,6 +31,15 @@ import project.service.UserService;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 
+/**
+ * @author 我要大声哈哈哈哈(user1919191)
+ * @Profieession https://github.com/user1919191
+ */
+
+/**
+ * 收藏帖子接口
+ */
+
 @RestController
 @RequestMapping("/post_favour")
 public class PostFavourController {

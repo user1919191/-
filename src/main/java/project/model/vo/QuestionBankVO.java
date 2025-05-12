@@ -7,6 +7,10 @@ import project.model.entity.QuestionBank;
 
 import java.io.Serializable;
 import java.util.Date;
+/**
+ * @author 我要大声哈哈哈哈(user1919191)
+ * @Profieession https://github.com/user1919191
+ */
 
 /**
  * 题库视图

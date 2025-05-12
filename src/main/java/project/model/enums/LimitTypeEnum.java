@@ -5,6 +5,14 @@ import org.apache.commons.lang3.ObjectUtils;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
+/**
+ * @author 我要大声哈哈哈哈(user1919191)
+ * @Profieession https://github.com/user1919191
+ */
+
+/**
+ * 反爬虫 封禁类型枚举
+ */
 
 public enum LimitTypeEnum {
     REJECT_IP("拒绝IP","REJECT_IP"),

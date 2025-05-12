@@ -3,6 +3,10 @@ package project.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import project.model.entity.PostThumb;
 import project.model.entity.User;
+/**
+ * @author 我要大声哈哈哈哈(user1919191)
+ * @Profieession https://github.com/user1919191
+ */
 
 /**
  * 帖子点赞服务
@@ -26,4 +30,5 @@ public interface PostThumbService extends IService<PostThumb> {
      * @return
      */
     int doPostThumbInner(long userId, long postId);
+
 }

@@ -9,6 +9,14 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import project.common.BaseResponse;
 import project.common.ErrorCode;
 import project.common.ResultUtil;
+/**
+ * @author 我要大声哈哈哈哈(user1919191)
+ * @Profieession https://github.com/user1919191
+ */
+
+/**
+ * 全局异常处理拦截器
+ */
 
 @RestControllerAdvice
 @Slf4j

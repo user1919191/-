@@ -1,8 +1,10 @@
 package project.service.Imp;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.aop.framework.AopContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import project.service.QuestionService;
 import project.service.UserService;
 
 import java.util.List;
@@ -16,5 +18,6 @@ public class userServiceTest {
     public void test() {
         List<Integer> userSignInYear = userService.getUserSignInYear(1, 2024);
         System.out.println(userSignInYear);
+
     }
 }

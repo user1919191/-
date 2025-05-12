@@ -40,6 +40,14 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static project.constant.UserConstant.User_Status_Login;
+/**
+ * @author 我要大声哈哈哈哈(user1919191)
+ * @Profieession https://github.com/user1919191
+ */
+
+/**
+ * 用户实现类
+ */
 
 @Service
 @Slf4j

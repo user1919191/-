@@ -16,6 +16,14 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 
+/**
+ * @author 我要大声哈哈哈哈(user1919191)
+ * @Profieession https://github.com/user1919191
+ */
+
+/**
+ * Nacos监听器
+ */
 //@Component
 public class NacosListener implements InitializingBean {
     private static final Logger log = LoggerFactory.getLogger(NacosListener.class);

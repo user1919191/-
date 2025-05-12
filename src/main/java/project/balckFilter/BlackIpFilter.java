@@ -8,6 +8,11 @@ import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 
 /**
+ * @author 我要大声哈哈哈哈(user1919191)
+ * @Profieession https://github.com/user1919191
+ */
+
+/**
  * 黑名单全局Ip过滤拦截器
  */
 @WebFilter(urlPatterns = "/*",filterName = "BlackIpFilter")

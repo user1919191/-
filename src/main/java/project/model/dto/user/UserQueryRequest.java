@@ -4,11 +4,13 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import project.common.PageRequest;
 import java.io.Serializable;
+/**
+ * @author 我要大声哈哈哈哈(user1919191)
+ * @Profieession https://github.com/user1919191
+ */
 
 /**
  * 用户查询请求
- *
- 
  */
 @EqualsAndHashCode(callSuper = true)
 @Data

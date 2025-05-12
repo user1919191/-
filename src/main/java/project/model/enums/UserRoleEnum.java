@@ -7,6 +7,10 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * 用户权限枚举
+ */
+
 public enum UserRoleEnum implements Serializable {
     USER("用户", "user"),
     ADMIN("管理员", "admin"),

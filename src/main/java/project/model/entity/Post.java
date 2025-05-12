@@ -5,6 +5,10 @@ import lombok.Data;
 
 import java.io.Serializable;
 import java.util.Date;
+/**
+ * @author 我要大声哈哈哈哈(user1919191)
+ * @Profieession https://github.com/user1919191
+ */
 
 /**
  * 帖子
@@ -67,4 +71,40 @@ public class Post implements Serializable {
 
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;
+
+    public boolean IncreaseThumb(){
+        int current = this.thumbNum;
+        this.thumbNum++;
+        if(current + 1 == thumbNum){
+            return true;
+        }
+        return false;
+    }
+
+    public boolean DecreaseThumb(){
+        int current = this.thumbNum;
+        this.thumbNum--;
+        if(current - 1 == thumbNum){
+            return true;
+        }
+        return false;
+    }
+
+    public boolean IncreaseFavour(){
+        int current = this.favourNum;
+        this.favourNum++;
+        if(current + 1 == favourNum){
+            return true;
+        }
+        return false;
+    }
+
+    public boolean DecreaseFavour(){
+        int current = this.favourNum;
+        this.favourNum--;
+        if(current - 1 == favourNum){
+            return true;
+        }
+        return false;
+    }
 }

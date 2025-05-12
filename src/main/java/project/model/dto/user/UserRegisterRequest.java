@@ -3,11 +3,13 @@ package project.model.dto.user;
 import lombok.Data;
 
 import java.io.Serializable;
+/**
+ * @author 我要大声哈哈哈哈(user1919191)
+ * @Profieession https://github.com/user1919191
+ */
 
 /**
  * 用户注册请求体
- *
- 
  */
 @Data
 public class UserRegisterRequest implements Serializable {

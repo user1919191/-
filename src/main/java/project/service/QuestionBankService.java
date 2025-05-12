@@ -9,10 +9,13 @@ import project.model.vo.QuestionBankVO;
 
 
 import javax.servlet.http.HttpServletRequest;
+/**
+ * @author 我要大声哈哈哈哈(user1919191)
+ * @Profieession https://github.com/user1919191
+ */
 
 /**
  * 题库服务
-
  */
 public interface QuestionBankService extends IService<QuestionBank> {
 
