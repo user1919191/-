@@ -1,0 +1,18 @@
+{
+  "flowRules" : [ {
+    "id" : null,
+    "resource" : "ListQuestionVoByPage",
+    "limitApp" : "default",
+    "grade" : 1,
+    "paramIdx" : 0,
+    "count" : 60.0,
+    "controlBehavior" : 0,
+    "maxQueueingTimeMs" : 0,
+    "burstCount" : 0,
+    "durationInSec" : 60,
+    "paramFlowItemList" : [ ],
+    "clusterMode" : false,
+    "clusterConfig" : null
+  } ],
+  "degradeRules" : [ ]
+}
