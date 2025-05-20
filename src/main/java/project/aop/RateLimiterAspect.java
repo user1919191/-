@@ -190,15 +190,15 @@ public class RateLimiterAspect {
         return 0L;
     }
 
-    /**
-     * 初始化限流器
-     * @param key
-     * @param rateLimiter
-     * @return
-     */
-    private RRateLimiter initRateLimiter(String key, RateLimiter rateLimiter) {
-        RRateLimiter limiter = redissonClient.getRateLimiter(key);
-        limiter.trySetRate(RateType.OVERALL,rateLimiter.LimitCount(), rateLimiter.CountTime(), rateLimiter.timeUnit());
-        return limiter;
-    }
+//    /**
+//     * 初始化限流器
+//     * @param key
+//     * @param rateLimiter
+//     * @return
+//     */
+//    private RRateLimiter initRateLimiter(String key, RateLimiter rateLimiter) {
+//        RRateLimiter limiter = redissonClient.getRateLimiter(key);
+//        limiter.trySetRate(RateType.OVERALL,rateLimiter.LimitCount(), rateLimiter.CountTime(), rateLimiter.timeUnit());
+//        return limiter;
+//    }
 }

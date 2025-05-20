@@ -7,13 +7,13 @@
 ![PixPin_2025-05-05_16-43-23](https://github.com/user-attachments/assets/1234c37c-c4f0-4e15-8ed8-126c65fd2684)
 ![PixPin_2025-05-05_16-43-58](https://github.com/user-attachments/assets/295ee031-2a9d-49bc-bd57-b96e21907da1)
 ![PixPin_2025-05-05_16-47-04](https://github.com/user-attachments/assets/89cd3e63-7abf-4073-9c08-b310b5bef507)
-![PixPin_2025-05-09_23-05-03](https://github.com/user-attachments/assets/b5c11da7-c06b-4da9-8d24-7f0af411c81d)
 
 
 具体实现:
-
     题目业务:
-    
+![PixPin_2025-05-09_23-05-03](https://github.com/user-attachments/assets/b5c11da7-c06b-4da9-8d24-7f0af411c81d)
+
+
 1.将题目的标签字段以String存储在数据库中,返回前端时将String转化为List<String>便于展示。
 
 2.使用BitMap优化用户签到功能,实现更小的存储占用.通过位运算来定位签到情况,通过牺牲签到数据的可读性换取更优的存储性能。在将签到数据返回前端时,通过位运算将已签到的日期(在某年中的DayOfYear)封装为List返回给前端,可以直接展示。

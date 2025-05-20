@@ -53,6 +53,13 @@ public class PostThumbServiceImp extends ServiceImpl<PostThumbMapper, PostThumb>
      */
     private static final String POST_THUMB_KEY = "P:T:";
 
+
+  @Resource
+    private StringRedisTemplate stringRedisTemplate;
+
+    @Resource
+    private ThumbBatchProducer thumbBatchProducer;
+
     @Resource
     private StringRedisTemplate stringRedisTemplate;
 

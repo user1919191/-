@@ -11,6 +11,13 @@ spring:
       matching-strategy: ant_path_matcher
   # 数据库配置
   datasource:
+    #向量数据库
+    pgvector:
+      url: #Todo 填入自己的配置
+      username:
+      password:
+      driver-class-name: org.postgresql.Driver
+    #MySQL数据库
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://localhost:3306/mianshiya
     username: root
@@ -82,6 +89,16 @@ spring:
         login-password: 123
         allow: 127.0.0.1 # 允许访问的地址，如果allow没有配置或者为空，则允许所有访问
         deny: # 拒绝访问的地址，deny优先于allow，如果在deny列表中，就算在allow列表中，也会被拒绝
+  ai:
+    dashscope:
+      api-key:
+        key1: #todo 填入自己的配置
+        key2:
+      chat:
+        options:
+          model:
+            model1: "qwen-plus"
+            model2: "qwen-vl-ocr"
   # Redis 配置
   redis:
     database: 1
@@ -190,8 +207,8 @@ knife4j:
 
 #AI大模型接口API
 ai:
-  apiKey: #输入你的APIKey
-
+  apiKey: #Todo 填入自己的APIKey
+  
 #RoketMQ消息队列
 rocketmq:
   name-server: 192.168.21.190:9876  # NameServer 地址
@@ -202,11 +219,20 @@ rocketmq:
     batch-send-delay-ms: 10000 # 批量发送延迟（毫秒）
     batch-max-size: 1000 # 批量发送最大消息数
     retry-times-when-send-failed: 2 # 发送失败重试次数
+    batch-send: true              # 启用批量发送（部分客户端需要代码实现）
+    batch-send-size: 100          # 每批最大消息数（根据业务调整）
+    batch-send-interval: 10000      # 批量发送间隔(ms)
   consumer:
     group: thumb-consumer-group   # 消费者组（需唯一）
     consume-thread-max: 20     # 最大消费线程数
-    consume-timeout: 30000      # 消费超时时间(毫秒)
-    pull-batch-size: 32         # 每次拉取消息数量
-    # 重试策略
-    max-reconsume-times: 3      # 最大重试次数
-    suspend-current-queue-time-millis: 5000 # 消费失败后挂起时间
+    max-reconsume-times: 10000
+
+#langchain4j配置类
+langchain4j:
+  community:
+    dashscope:
+      api-key: #Todo 填入自己的APIKey
+      chat-model:
+        model-name: "qwen-plus"
+      embedding-model:
+        model-name: "text-embedding-v2"
