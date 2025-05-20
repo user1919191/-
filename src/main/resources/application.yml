@@ -208,18 +208,22 @@ knife4j:
 #AI大模型接口API
 ai:
   apiKey: #Todo 填入自己的APIKey
+  
 #RoketMQ消息队列
 rocketmq:
   name-server: 192.168.21.190:9876  # NameServer 地址
   producer:
-    group: my-producer-group   # 生产者组（需唯一）
+    group: thumb-producer-group   # 生产者组（需唯一）
     send-message-timeout: 3000 # 发送超时（毫秒）
+    batch: true # 开启批量发送
+    batch-send-delay-ms: 10000 # 批量发送延迟（毫秒）
+    batch-max-size: 1000 # 批量发送最大消息数
     retry-times-when-send-failed: 2 # 发送失败重试次数
     batch-send: true              # 启用批量发送（部分客户端需要代码实现）
     batch-send-size: 100          # 每批最大消息数（根据业务调整）
     batch-send-interval: 10000      # 批量发送间隔(ms)
   consumer:
-    group: my-consumer-group   # 消费者组（需唯一）
+    group: thumb-consumer-group   # 消费者组（需唯一）
     consume-thread-max: 20     # 最大消费线程数
     max-reconsume-times: 10000
 

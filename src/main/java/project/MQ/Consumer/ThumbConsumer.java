@@ -62,15 +62,25 @@ public class ThumbConsumer implements RocketMQListener<List<ThumbEvent>> {
     public void onMessage(List<ThumbEvent> events) {
         log.info("消费者接收到消息,准备执行");
         //1.按postID分组处理
+
         events.stream()
+
+        Set<ThumbEvent> thumbEvents = events.stream()
+
                 .collect(Collectors.toMap(
                         e -> e.getUserid() + "_" + e.getPostId(),
                         e -> e,
                         (existing, replacement) ->
                                 existing.getDateTime().isAfter(replacement.getDateTime()) ? existing : replacement
                 ))
+
                 .values()
                 .forEach(this::processEventGroup);
+
+                .values().stream()
+                .collect(Collectors.toSet());
+        //2.处理事件
+        thumbEvents.forEach(this::processEventGroup);
     }
 
     /**
@@ -90,14 +100,21 @@ public class ThumbConsumer implements RocketMQListener<List<ThumbEvent>> {
             }
             LambdaQueryWrapper<PostThumb> queryWrapper = Wrappers.lambdaQuery(PostThumb.class)
                     .eq(PostThumb::getPostId, event.getPostId()).eq(PostThumb::getUserId, event.getUserid());
+
             PostThumb thumb = postThumbService.getOne(queryWrapper);
             if(ObjectUtils.isEmpty(thumb)){
                 boolean save = postThumbService.save(postThumb);
                 event.setStatus(1);
+
+            boolean updated = postThumbService.update(postThumb,queryWrapper);
+            if(!updated){
+                boolean save = postThumbService.save(postThumb);
+
                 if(!save){
                     log.warn("执行重试操作");
                     retry(event);
                 }
+
             }else{
                 boolean update = postThumbService.update(postThumb, queryWrapper);
                 event.setStatus(1);

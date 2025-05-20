@@ -31,6 +31,7 @@ public class ThumbBatchProducer {
     /**
      * 消息队列常量
      */
+
     @Value("${rocketmq.producer.batch-send-size}")
     private int max_size;
 
@@ -38,6 +39,18 @@ public class ThumbBatchProducer {
      * 消息暂存队列
      */
     private final static ConcurrentLinkedQueue<ThumbEvent> eventQueue = new ConcurrentLinkedQueue<>();
+
+    @Value("${rocketmq.producer.batch-max-size}")
+    private int max_size;
+
+    @Value("${rocketmq.producer.batch-send-delay-ms}")
+    private static int delay_ms;
+
+    /**
+     * 消息暂存队列
+     */
+    private final ConcurrentLinkedQueue<ThumbEvent> eventQueue = new ConcurrentLinkedQueue<>();
+
 
     /**
      * 执行锁
@@ -66,7 +79,11 @@ public class ThumbBatchProducer {
     /**
      * 定时批量发送消息
      */
+
     @Scheduled(fixedDelayString = "${rocketmq.producer.batch-send-interval}")
+
+  @Scheduled(fixedDelayString = "${rocketmq.producer.batch-send-delay-ms}")
+
     public void scheduledBatchSendThumb(){
         log.info("执行定时发送任务!");
         synchronized (lock){

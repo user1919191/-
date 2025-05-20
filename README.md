@@ -8,8 +8,12 @@
 ![PixPin_2025-05-05_16-43-58](https://github.com/user-attachments/assets/295ee031-2a9d-49bc-bd57-b96e21907da1)
 ![PixPin_2025-05-05_16-47-04](https://github.com/user-attachments/assets/89cd3e63-7abf-4073-9c08-b310b5bef507)
 
+
 具体实现:
     题目业务:
+![PixPin_2025-05-09_23-05-03](https://github.com/user-attachments/assets/b5c11da7-c06b-4da9-8d24-7f0af411c81d)
+
+
 1.将题目的标签字段以String存储在数据库中,返回前端时将String转化为List<String>便于展示。
 
 2.使用BitMap优化用户签到功能,实现更小的存储占用.通过位运算来定位签到情况,通过牺牲签到数据的可读性换取更优的存储性能。在将签到数据返回前端时,通过位运算将已签到的日期(在某年中的DayOfYear)封装为List返回给前端,可以直接展示。
@@ -27,3 +31,4 @@
 8.使用记录返回ID,将ID作为查询条件解决深分页问题。
 
 9.对于Caffeine缓存实现缓存预热,并且通过Spring Schedule定时检测和清理Caffeine状态,记录命中率和占用率到日志文件。当命中率低时,从HotKey同步热点数据;当占用率高时,首先让Caffeine自动清理本地缓存,再次检测占用率,如果占用率依旧高,手动通过LFU算法,依据CurrentTotal*0.2动态清理冷数据释放空间。实现缓存高可用。
+

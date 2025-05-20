@@ -102,7 +102,6 @@ public class PostThumbController {
     @Resource
     private PostService postService;
 
-
     /**
      * 点赞/取消点赞
      * @param thumbRequest

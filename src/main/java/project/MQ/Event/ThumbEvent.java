@@ -61,6 +61,7 @@ public class ThumbEvent implements Serializable {
         CANCEL_THUMB
     }
 
+
     /**
      * 本消息完成状态
      */
