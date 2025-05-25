@@ -7,15 +7,15 @@
 ![无标题-2025-05-05-1146 4](https://github.com/user-attachments/assets/7f9b5cbb-0e83-40e2-a0d1-a809db2fd7ba)
 
 
-运行示例:
+## 运行示例:
 ![PixPin_2025-05-05_16-42-25](https://github.com/user-attachments/assets/259af430-130d-4485-b6d3-33239ef8c890)
 ![PixPin_2025-05-05_16-43-23](https://github.com/user-attachments/assets/1234c37c-c4f0-4e15-8ed8-126c65fd2684)
 ![PixPin_2025-05-05_16-43-58](https://github.com/user-attachments/assets/295ee031-2a9d-49bc-bd57-b96e21907da1)
 ![PixPin_2025-05-05_16-47-04](https://github.com/user-attachments/assets/89cd3e63-7abf-4073-9c08-b310b5bef507)
 ![PixPin_2025-05-09_23-05-03](https://github.com/user-attachments/assets/b5c11da7-c06b-4da9-8d24-7f0af411c81d)
 
-#具体实现
-##题目业务模块
+# 具体实现
+## 题目业务模块
 1. 将题目的标签字段以String存储在数据库中,返回前端时将String转化为List<String>便于展示。
 2. 使用BitMap优化用户签到功能,实现更小的存储占用.通过位运算来定位签到情况,通过牺牲签到数据的可读性换取更优的存储性能。在将签到数据返回前端时,通过位运算将已签到的日期(在某年中的DayOfYear)封装为List返回给前端,可以直接展示。
 3. 数据库数据采用逻辑删除,提升性能和数据可恢复性。
@@ -26,11 +26,11 @@
 8. 对于Caffeine缓存实现缓存预热,并且通过Spring Schedule定时检测和清理Caffeine状态,记录命中率和占用率到日志文件。当命中率低时,从HotKey同步热点数据;当占用率高时,首先让Caffeine自动清理本地缓存,再次检测占用率,如果占用率依旧高,手动通过LFU算法,依据CurrentTotal*0.2动态清理冷数据释放空间。实现缓存高可用。
 9. 使用Sentinel针对分页查询和单个题目查询进行限流,防治大量数据访问导致系统不可用。编写降级和限流方案,限流返回Null,降级查询缓存数据。提高系统可用性和稳定性。
 
-##题库模块
+## 题库模块
 1. 建立题目题库关联表,便于通过题目定位题库,使用题库检索题目。避免对于题目表,题库表的全表扫描查询数据,减少了性能损耗。
 2. 基于线程池+ComputableFuture+异步实现题目题库关联的批量修改,避免业务阻塞,提高了系统性能。
 
-##模拟面试模块
+## 模拟面试模块
 1. 基于LangChain4J框架+DashScope实现对话记忆和临时对话存储。
 2. 通过DashScope的多模态模型的图像识别,实现真实的基于简历面试和简历的针对性优化意见,提高了用户的体验感和面试的真实性。
 3. 通过建立自纠错RAG(Currective-RAG),当用户请求传入时,先进行本地RAG检索增强,将生成的Context和UserPrompt传入大模型生成。得到结果后,进行词检索和逻辑检索。通过后返回结果。
