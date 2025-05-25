@@ -4,8 +4,7 @@
 * 以下为项目架构图:
 ![无标题-2025-05-05-1146 3](https://github.com/user-attachments/assets/54449271-5443-437c-9a4e-ee60ed01508b)
 * 以下为自纠错RAG架构图:
-![无标题-2025-05-05-1146 4](https://github.com/user-attachments/assets/7f9b5cbb-0e83-40e2-a0d1-a809db2fd7ba)
-
+![无标题-2025-05-05-1146 4](https://github.com/user-attachments/assets/29afbc48-fa03-448b-8b45-2b07e346f822)
 
 ## 运行示例:
 ![PixPin_2025-05-05_16-42-25](https://github.com/user-attachments/assets/259af430-130d-4485-b6d3-33239ef8c890)
