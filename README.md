@@ -1,4 +1,4 @@
-![无标题-2025-05-05-1146 3](https://github.com/user-attachments/assets/ceda2e61-e8ea-48e1-9084-e9658a4416fc)#项目架构
+# 项目架构
 * 本项目使用Java开发,基于SpringBoot+LangChain4J框架。结合MySQL,Redis,RocketMQ,ES,RAG实现功能扩展和性能提升。
 * 在本项目中实现了题目,题库的增删改查和分页查询。管理员可以增加修改删除题目题库关联并且通过AI生成题目题解。用户可以设置自己的用户名片和进行发帖操作,并且用户可以点赞和收藏帖子。用户可以签到,搜索题目,查看题目题解。本项目与LangChain4j结合,结合DashScope调用大模型,PgVector存储向量,RAG实现增强检索,实现多种模拟面试功能。
 * 以下为项目架构图:
