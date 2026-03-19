@@ -9,7 +9,6 @@ import org.apache.rocketmq.spring.annotation.RocketMQMessageListener;
 import org.apache.rocketmq.spring.core.RocketMQListener;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.springframework.beans.BeanUtils;
-import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -19,17 +18,13 @@ import project.model.entity.PostThumb;
 import project.service.PostThumbService;
 
 import javax.annotation.Resource;
-import java.util.*;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.stream.Collectors;
-/**
- * @author 我要大声哈哈哈哈(user1919191)
- * @Profieession https://github.com/user1919191
- */
 
-/**
- * 点赞消息消费者
- */
 @Component
 @Slf4j
 @RocketMQMessageListener(
@@ -40,10 +35,7 @@ import java.util.stream.Collectors;
 )
 public class ThumbConsumer implements RocketMQListener<List<ThumbEvent>> {
 
-    /**
-     * 重试消息队列
-     */
-    private static final ConcurrentLinkedQueue eventQueue = new ConcurrentLinkedQueue();
+    private static final ConcurrentLinkedQueue<ThumbEvent> EVENT_QUEUE = new ConcurrentLinkedQueue<>();
 
     @Resource
     private PostThumbService postThumbService;
@@ -52,121 +44,102 @@ public class ThumbConsumer implements RocketMQListener<List<ThumbEvent>> {
     private RocketMQTemplate rocketMQTemplate;
 
     @Value("${rocketmq.consumer.max-reconsume-times}")
-    private int retry_time;
+    private int retryTime;
 
-    /**
-     * 接收消息
-     * @param events
-     */
-    @Override
-    public void onMessage(List<ThumbEvent> events) {
-        log.info("消费者接收到消息,准备执行");
-        //1.按postID分组处理
-
-        events.stream()
-
-        Set<ThumbEvent> thumbEvents = events.stream()
-
-                .collect(Collectors.toMap(
-                        e -> e.getUserid() + "_" + e.getPostId(),
-                        e -> e,
-                        (existing, replacement) ->
-                                existing.getDateTime().isAfter(replacement.getDateTime()) ? existing : replacement
-                ))
-
-                .values()
-                .forEach(this::processEventGroup);
-
-                .values().stream()
-                .collect(Collectors.toSet());
-        //2.处理事件
-        thumbEvents.forEach(this::processEventGroup);
+    @Scheduled(fixedDelayString = "${rocketmq.producer.batch-send-delay-ms:10000}")
+    public void retrySchedule() {
+        if (EVENT_QUEUE.isEmpty()) {
+            return;
+        }
+        ConcurrentLinkedQueue<ThumbEvent> retryQueue = new ConcurrentLinkedQueue<>();
+        ThumbEvent event;
+        while ((event = EVENT_QUEUE.poll()) != null) {
+            retryQueue.offer(event);
+        }
+        retryQueue.forEach(this::processEvent);
     }
 
-    /**
-     * 根据帖子ID处理消息
-     * @param event
-     */
-    private void processEventGroup(ThumbEvent event) {
-        log.info("正在向数据库插入数据");
+    @Override
+    public void onMessage(List<ThumbEvent> events) {
+        if (events == null || events.isEmpty()) {
+            return;
+        }
+        Map<String, ThumbEvent> latestEventMap = events.stream()
+                .filter(Objects::nonNull)
+                .collect(Collectors.toMap(
+                        event -> event.getUserid() + "_" + event.getPostId(),
+                        event -> event,
+                        (left, right) -> compareEventTime(left, right) >= 0 ? left : right
+                ));
+        latestEventMap.values().forEach(this::processEvent);
+    }
+
+    private int compareEventTime(ThumbEvent left, ThumbEvent right) {
+        if (left.getDateTime() == null && right.getDateTime() == null) {
+            return 0;
+        }
+        if (left.getDateTime() == null) {
+            return -1;
+        }
+        if (right.getDateTime() == null) {
+            return 1;
+        }
+        return left.getDateTime().compareTo(right.getDateTime());
+    }
+
+    private void processEvent(ThumbEvent event) {
+        if (event == null) {
+            return;
+        }
         try {
             PostThumb postThumb = new PostThumb();
             BeanUtils.copyProperties(event, postThumb);
-            postThumb.setUpdateTime(new Date());
-            if(event.getIsThumb().equals(ThumbEvent.ThumbType.THUMB)){
-                postThumb.setIsThumb(1);
-            }else{
-                postThumb.setIsThumb(0);
-            }
+            postThumb.setUserId(event.getUserid());
+            postThumb.setIsThumb(event.getIsThumb() == ThumbEvent.ThumbType.THUMB ? 1 : 0);
+
             LambdaQueryWrapper<PostThumb> queryWrapper = Wrappers.lambdaQuery(PostThumb.class)
-                    .eq(PostThumb::getPostId, event.getPostId()).eq(PostThumb::getUserId, event.getUserid());
+                    .eq(PostThumb::getPostId, event.getPostId())
+                    .eq(PostThumb::getUserId, event.getUserid());
 
-            PostThumb thumb = postThumbService.getOne(queryWrapper);
-            if(ObjectUtils.isEmpty(thumb)){
-                boolean save = postThumbService.save(postThumb);
-                event.setStatus(1);
-
-            boolean updated = postThumbService.update(postThumb,queryWrapper);
-            if(!updated){
-                boolean save = postThumbService.save(postThumb);
-
-                if(!save){
-                    log.warn("执行重试操作");
-                    retry(event);
-                }
-
-            }else{
-                boolean update = postThumbService.update(postThumb, queryWrapper);
-                event.setStatus(1);
-                if(!update){
-                    log.warn("执行重试操作");
-                    retry(event);
-                }
+            PostThumb existing = postThumbService.getOne(queryWrapper);
+            boolean success;
+            if (ObjectUtils.isEmpty(existing)) {
+                success = postThumbService.save(postThumb);
+            } else {
+                success = postThumbService.update(postThumb, queryWrapper);
             }
-        } catch (BeansException e) {
+
+            if (!success) {
+                retry(event);
+                return;
+            }
+            event.setStatus(1);
+        } catch (Exception e) {
+            log.warn("thumb consumer failed, event={}", event, e);
             retry(event);
         }
     }
 
-    /**
-     * 重试机制
-     */
-    public void retry(ThumbEvent event){
-       event.setRetryCount(event.getRetryCount()+1);
-       if(event.getRetryCount() >= retry_time){
-           sendToDeadLetterQueue(event);
-       }else{
-           eventQueue.offer(event);
-       }
-    }
-
-    /**
-     * 定期重试机制
-     */
-    @Scheduled(fixedDelayString = "${rocketmq.consumer.max-reconsume-times}")
-    public void retrySchedule(){
-        if(eventQueue.isEmpty()) return;
-        ConcurrentLinkedQueue<ThumbEvent> queueRetry;
-        synchronized (eventQueue){
-            queueRetry = new ConcurrentLinkedQueue<>(eventQueue);
-            eventQueue.clear();
+    private void retry(ThumbEvent event) {
+        event.setRetryCount(event.getRetryCount() + 1);
+        if (event.getRetryCount() >= retryTime) {
+            sendToDeadLetterQueue(event);
+            return;
         }
-        queueRetry.forEach(this::processEventGroup);
+        EVENT_QUEUE.offer(event);
     }
 
-    /**
-     * 发送消息到死信队列
-     * @param event
-     */
     private void sendToDeadLetterQueue(ThumbEvent event) {
         try {
-            rocketMQTemplate.syncSend("DEAD_LETTER_TOPIC",
+            rocketMQTemplate.syncSend(
+                    "DEAD_LETTER_TOPIC",
                     MessageBuilder.withPayload(event)
-                            .setHeader(MessageConst.PROPERTY_ORIGIN_MESSAGE_ID, event.getId())
-                            .build());
-            log.warn("Sent to dead letter queue: {}", event);
+                            .setHeader(MessageConst.PROPERTY_ORIGIN_MESSAGE_ID, String.valueOf(event.getId()))
+                            .build()
+            );
+            log.warn("sent thumb event to dead letter queue: {}", event);
         } catch (Exception e) {
-            log.error("Failed to send dead letter message", e);
+            log.error("failed to send thumb event to dead letter queue", e);
         }
     }
 }

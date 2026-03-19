@@ -1,392 +1,350 @@
 package project.service.Imp;
 
-import com.alibaba.dashscope.aigc.generation.Generation;
-import com.alibaba.dashscope.aigc.generation.GenerationParam;
-import com.alibaba.dashscope.aigc.generation.GenerationResult;
-import com.alibaba.dashscope.aigc.multimodalconversation.MultiModalConversation;
-import com.alibaba.dashscope.aigc.multimodalconversation.MultiModalConversationParam;
-import com.alibaba.dashscope.aigc.multimodalconversation.MultiModalConversationResult;
-import com.alibaba.dashscope.common.Message;
 import com.alibaba.dashscope.common.MultiModalMessage;
-import com.alibaba.dashscope.common.Role;
-import com.alibaba.dashscope.exception.ApiException;
-import com.alibaba.dashscope.exception.InputRequiredException;
-import com.alibaba.dashscope.exception.NoApiKeyException;
-import com.alibaba.dashscope.exception.UploadFileException;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import dev.langchain4j.data.segment.TextSegment;
-import dev.langchain4j.rag.content.retriever.ContentRetriever;
-import dev.langchain4j.store.embedding.EmbeddingStore;
-import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import project.common.ErrorCode;
 import project.exception.ThrowUtil;
+import project.manager.DashScopeAiManager;
+import project.manager.InterviewSessionManager;
 import project.manager.RagManager;
 import project.mapper.interViewMapper;
-import project.model.dto.DummyInterview.interViewDTO;
+import project.model.dto.DummyInterview.CandidateSkillProfile;
+import project.model.dto.DummyInterview.InterviewEvaluationResult;
+import project.model.dto.DummyInterview.InterviewMessageRecord;
+import project.model.dto.DummyInterview.InterviewSession;
+import project.model.dto.DummyInterview.QuestionPlan;
+import project.model.dto.DummyInterview.ResumeProfile;
 import project.model.dto.DummyInterview.interViewMutiRequest;
 import project.model.dto.DummyInterview.interViewRequest;
 import project.model.entity.InterView;
+import project.model.enums.AiTaskType;
+import project.service.AiStructuredOutputService;
+import project.service.CandidateSkillProfiler;
 import project.service.DummyInterViewService;
+import project.service.InterviewEvaluator;
+import project.service.PromptTemplateService;
+import project.service.QuestionPlanner;
 
 import javax.annotation.Resource;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
-/**
- * @author 我要大声哈哈哈哈(user1919191)
- * @Profieession https://github.com/user1919191
- */
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-/**
- * 面试服务实现类
- */
 @Service
-@Slf4j
 public class DummyInterViewServiceImp extends ServiceImpl<interViewMapper, InterView> implements DummyInterViewService {
 
-    /**
-     * 对话暂存列表
-     */
-    private Map<String, List<Message>> interviewTemplete = new ConcurrentHashMap<>();
+    private static final String ROLE_USER = "user";
+    private static final String ROLE_ASSISTANT = "assistant";
 
-    /**
-     * 初始化系统提示
-     */
-    private static String InitSystemPrompt = "您是一为Java,包含Redis,MySQL,MQ等中间件领域的面试官," +
-            "您要对面试者问好并进行面试,面试者会回答您的问题,您需要根据面试者的回答给出评价," +
-            "并给出下一轮的问题,直到面试结束,面试结束时返回你的总体评价,面试结束的标志是面试者回答“面试结束(要求,纯文本格式输出)" +
-            "如果面试者超过三次回答不相关内容,直接停止面试";
+    private static final String SCENE_STANDARD = "STANDARD";
+    private static final String SCENE_RAG = "RAG";
+    private static final String SCENE_RESUME_INTERVIEW = "RESUME_INTERVIEW";
+    private static final String SCENE_RESUME_OPTIMIZE = "RESUME_OPTIMIZE";
 
-    private static String RAGInitSystemPrompt = "您是一为Java,包含Redis,MySQL,MQ等中间件领域的面试官," +
-            "您要对进行面试(面试内容主要参照本地知识库)请结合上下文对话,可以对面试者进行追问.面试者会回答您的问题,您需要根据面试者的回答给出评价," +
-            "并给出下一轮的问题,面试结束的标志是面试者回答“面试结束(要求,纯文本格式输出),不需要输出不必要的语气词或问候词" +
-            "如果面试者超过三次回答不相关内容,直接停止面试";
+    private static final int MAX_HISTORY_MESSAGES = 16;
 
-    private static String MutiInitSystemPrompt = "您是一为Java,包含Redis,MySQL,MQ等中间件领域的面试官," +
-            "您要对面试者问好并进行面试(以上为面试者的简历,请围绕简历内容提问)请结合上下文对话,可以对面试者进行追问.面试者会回答您的问题,您需要根据面试者的回答给出评价," +
-            "并给出下一轮的问题,直到面试结束,面试结束时返回你的总体评价,面试结束的标志是面试者回答“面试结束(要求,纯文本格式输出)" +
-            "如果面试者超过三次回答不相关内容,直接停止面试";
-
-    private static String MutiUpdateInitSystemPrompt = "您是一为Java,包含Redis,MySQL,MQ等中间件领域的简历优化师," +
-            "您要对面试者的简历进行优化(以上为面试者的简历,请围绕简历内容分析)请结合上下文对话,以(问题:改进方案)的方式按顺序回答,注意分段." +
-            "并返回你的总体评价,结束的标志是面试者回答“优化结束(要求,纯文本格式输出)" +
-            "如果面试者超过三次回答不相关内容,直接停止";
-
-    /**
-     * AI大模型
-     */
     @Resource
-    private GenerationParam generationParam;
+    private DashScopeAiManager dashScopeAiManager;
 
     @Resource
     private RagManager ragManager;
 
     @Resource
-    MultiModalConversationParam multiModalConversationResult;
-    /**
-     * 模拟面试
-     * @param interviewrequest
-     * @param userid
-     * @return
-     */
+    private InterviewSessionManager interviewSessionManager;
+
+    @Resource
+    private InterviewEvaluator interviewEvaluator;
+
+    @Resource
+    private QuestionPlanner questionPlanner;
+
+    @Resource
+    private CandidateSkillProfiler candidateSkillProfiler;
+
+    @Resource
+    private PromptTemplateService promptTemplateService;
+
+    @Resource
+    private AiStructuredOutputService aiStructuredOutputService;
+
     @Override
     public String interview(interViewRequest interviewrequest, Long userid) {
-        //1.从缓存获取模拟面试
-        String interviewId = interviewrequest.getInterviewId();
-        String userPrompt = interviewrequest.getAnswer();
-        String systemPrompt = null;
-        if (interviewTemplete.containsKey(interviewId)) {
-            //2.1继续模拟面试
-             systemPrompt = continueInterView(interviewId, userPrompt);
-        }else{
-            //2.2开始新的模拟面试
-            systemPrompt = initInterView(interviewId);
-        }
-        systemPrompt = formatText(systemPrompt);
-        return systemPrompt;
+        validateInterviewRequest(interviewrequest);
+        return handleRound(userid, interviewrequest.getInterviewId(), interviewrequest.getAnswer(), SCENE_STANDARD, null);
     }
 
-    /**
-     * 调用RAG增强模拟面试
-     * @param interviewrequest
-     * @param userid
-     * @return
-     */
     @Override
     public String interviewByRAG(interViewRequest interviewrequest, Long userid) {
-        //1.从缓存获取模拟面试
-        String interviewId = interviewrequest.getInterviewId();
-        String userPrompt = interviewrequest.getAnswer();
-        String systemPrompt = null;
-        if (interviewTemplete.containsKey(interviewId)) {
-            //2.1继续模拟面试
-            systemPrompt = RagContinueInterView(interviewId, userPrompt);
-        }else{
-            //2.2开始新的模拟面试
-            systemPrompt = RagInitInterView(interviewId);
-        }
-        systemPrompt = formatText(systemPrompt);
-        return systemPrompt;
+        validateInterviewRequest(interviewrequest);
+        return handleRound(userid, interviewrequest.getInterviewId(), interviewrequest.getAnswer(), SCENE_RAG, null);
     }
 
-    /**
-     * 基于简历模拟面试
-     * @param interviewrequest
-     * @param userid
-     * @return
-     */
     @Override
     public String interviewByMuti(interViewMutiRequest interviewrequest, Long userid) {
-        String interviewId = interviewrequest.getInterviewId();
-        String userPrompt = interviewrequest.getAnswer();
-        String systemPrompt = null;
-        if (interviewTemplete.containsKey(interviewId)) {
-            //2.1继续模拟面试
-            systemPrompt = continueInterView(interviewId, userPrompt);
-        }else{
-            //2.2开始新的模拟面试
-            systemPrompt = mutiInitInterView(interviewrequest, interviewId);
-        }
-        systemPrompt = formatText(systemPrompt);
-        return systemPrompt;
+        validateMultiRequest(interviewrequest);
+        return handleRound(userid, interviewrequest.getInterviewId(), interviewrequest.getAnswer(), SCENE_RESUME_INTERVIEW, interviewrequest.getResumeImage());
     }
 
-    /**
-     * 简历优化
-     * @param interviewrequest
-     * @param userid
-     * @return
-     */
     @Override
-    public String interviewUpdateByPNG(interViewMutiRequest interviewrequest, Long userid){
-        String interviewId = interviewrequest.getInterviewId();
-        String userPrompt = interviewrequest.getAnswer();
-        String systemPrompt = null;
-        if (interviewTemplete.containsKey(interviewId)) {
-            //2.1继续模拟面试
-            systemPrompt = continueInterView(interviewId, userPrompt);
-        }else{
-            //2.2开始新的模拟面试
-            systemPrompt = mutiInitInterViewUpdate(interviewrequest,interviewId);
+    public String interviewUpdateByPNG(interViewMutiRequest interviewrequest, Long userid) {
+        validateMultiRequest(interviewrequest);
+        return handleRound(userid, interviewrequest.getInterviewId(), interviewrequest.getAnswer(), SCENE_RESUME_OPTIMIZE, interviewrequest.getResumeImage());
+    }
+
+    private String handleRound(Long userId, String interviewId, String userAnswer, String scene, String resumeImage) {
+        InterviewSession session = interviewSessionManager.getSession(userId, interviewId);
+        if (session == null || !scene.equals(session.getScene())) {
+            session = createSession(userId, interviewId, scene, resumeImage);
+        } else if (needsResumeProfile(scene, session) && StringUtils.isNotBlank(resumeImage)) {
+            session.setResumeProfile(extractResumeProfile(resumeImage));
         }
-        systemPrompt = formatText(systemPrompt);
-        return systemPrompt;
-    }
 
-    /**
-     * 继续模拟面试
-     * @param userPrompt
-     * @return
-     */
-    public String continueInterView(String interviewId,String userPrompt){
-        List<Message> interViewDTOS = interviewTemplete.get(interviewId);
-        Message message = createMessage(Role.USER, userPrompt);
-        interViewDTOS.add(message);
-        generationParam.setMessages(interViewDTOS);
-        GenerationResult generationResult = callGenerationWithMessages(generationParam);
-        Message systemPrompt = generationResult.getOutput().getChoices().get(0).getMessage();
-        interViewDTOS.add(systemPrompt);
-        return systemPrompt.getContent();
-    }
-
-    /**
-     * 初始化模拟面试
-     * @param interviewId
-     * @return
-     */
-    public String initInterView(String interviewId){
-        ArrayList<Message> interViewDTOS = new ArrayList<>();
-        Message InitMessage = createMessage(Role.ASSISTANT, InitSystemPrompt);
-        interViewDTOS.add(InitMessage);
-        generationParam.setMessages(interViewDTOS);
-        GenerationResult generationResult = callGenerationWithMessages(generationParam);
-        Message systemPrompt = generationResult.getOutput().getChoices().get(0).getMessage();
-        interViewDTOS.add(systemPrompt);
-        interviewTemplete.put(interviewId,interViewDTOS);
-        return systemPrompt.getContent();
-    }
-
-    /**
-     * 基于RAG的初始化模拟面试
-     * @param interviewId
-     * @return
-     */
-    public String RagInitInterView(String interviewId){
-        ArrayList<Message> interViewDTOS = new ArrayList<>();
-        Message InitMessage = createMessage(Role.ASSISTANT, RAGInitSystemPrompt);
-        interViewDTOS.add(InitMessage);
-        generationParam.setMessages(interViewDTOS);
-        String answer = ragManager.searchQuestionWithContext(RAGInitSystemPrompt,true);
-        Message systemPrompt = Message.builder().role(Role.ASSISTANT.getValue()).content(answer).build();
-        interViewDTOS.add(systemPrompt);
-        interviewTemplete.put(interviewId,interViewDTOS);
-        return systemPrompt.getContent();
-    }
-
-    /**
-     * 基于RAG的继续模拟面试
-     * @param interviewId
-     * @param userPrompt
-     * @return
-     */
-    public String RagContinueInterView(String interviewId,String userPrompt){
-        //1.调用AI(多轮对话)
-        List<Message> interViewDTOS = interviewTemplete.get(interviewId);
-        Message message = createMessage(Role.USER, userPrompt);
-        interViewDTOS.add(message);
-        generationParam.setMessages(interViewDTOS);
-        GenerationResult generationResult = callGenerationWithMessages(generationParam);
-        Message systemPrompt = generationResult.getOutput().getChoices().get(0).getMessage();
-        //2.将生成结果RAG自检增强
-        String content = systemPrompt.getContent();
-        //3.更新AI结果存储到上下文
-        systemPrompt.setContent(content);
-        interViewDTOS.add(systemPrompt);
-        return content;
-    }
-
-    /**
-     * 基于多模态的初始化简历面试
-     * @param interViewMutiRequest
-     * @param interviewId
-     * @return
-     */
-    public String mutiInitInterView(interViewMutiRequest interViewMutiRequest,String interviewId){
-        String answer = mutiToTest(interViewMutiRequest.getResumeImage());
-        ArrayList<Message> interViewDTOS = new ArrayList<>();
-        Message InitMessage = createMessage(Role.ASSISTANT, answer);
-        interViewDTOS.add(InitMessage);
-        generationParam.setMessages(interViewDTOS);
-        GenerationResult generationResult = callGenerationWithMessages(generationParam);
-        Message systemPrompt = generationResult.getOutput().getChoices().get(0).getMessage();
-        interViewDTOS.add(systemPrompt);
-        interviewTemplete.put(interviewId,interViewDTOS);
-        return systemPrompt.getContent();
-    }
-    /**
-     * 基于多模态的初始化简历优化
-     * @param interViewMutiRequest
-     * @param interviewId
-     * @return
-     */
-    public String mutiInitInterViewUpdate(interViewMutiRequest interViewMutiRequest,String interviewId){
-        String answer = mutiToUpdate(interViewMutiRequest.getResumeImage());
-        ArrayList<Message> interViewDTOS = new ArrayList<>();
-        Message InitMessage = createMessage(Role.ASSISTANT, answer);
-        interViewDTOS.add(InitMessage);
-        generationParam.setMessages(interViewDTOS);
-        GenerationResult generationResult = callGenerationWithMessages(generationParam);
-        Message systemPrompt = generationResult.getOutput().getChoices().get(0).getMessage();
-        interViewDTOS.add(systemPrompt);
-        interviewTemplete.put(interviewId,interViewDTOS);
-        return systemPrompt.getContent();
-    }
-
-    /**
-     * 生成Message
-     * @param role
-     * @param content
-     * @return
-     */
-    private static Message createMessage(Role role, String content) {
-        return Message.builder().role(role.getValue()).content(content).build();
-    }
-
-    /**
-     * 调用大模型
-     * @param param
-     * @return
-     * @throws ApiException
-     * @throws NoApiKeyException
-     * @throws InputRequiredException
-     */
-    public static GenerationResult callGenerationWithMessages(GenerationParam param) {
-        try {
-            Generation gen = new Generation();
-            return gen.call(param);
-        }catch (ApiException e) {
-            log.error("调用大模型失败", e);
-            ThrowUtil.throwIf(true, ErrorCode.SYSTEM_ERROR, "面试官跑路了,正在找回");
-        }catch ( NoApiKeyException e){
-            log.error("调用大模型失败", e);
-            ThrowUtil.throwIf(true, ErrorCode.SYSTEM_ERROR, "面试官跑路了,正在找回");
-        }catch ( InputRequiredException e){
-            log.error("调用大模型失败", e);
-            ThrowUtil.throwIf(true, ErrorCode.SYSTEM_ERROR, "面试官跑路了,正在找回");
+        boolean firstRound = session.getAskedQuestions().isEmpty();
+        if (!firstRound) {
+            ThrowUtil.throwIf(StringUtils.isBlank(userAnswer), ErrorCode.PARAMS_ERROR, "answer is required");
         }
-        return null;
+
+        String ragContext = buildRoundRagContext(session, userAnswer, firstRound);
+        InterviewEvaluationResult evaluationResult = null;
+
+        if (!firstRound) {
+            evaluationResult = shouldEndByUserInput(scene, userAnswer)
+                    ? buildUserExitEvaluation(scene)
+                    : interviewEvaluator.evaluate(session, userAnswer, ragContext);
+            session.setCandidateSkillProfile(candidateSkillProfiler.updateProfile(session.getCandidateSkillProfile(), evaluationResult, scene));
+            session.getHistory().add(new InterviewMessageRecord(ROLE_USER, userAnswer.trim()));
+        }
+
+        QuestionPlan questionPlan = shouldFinish(evaluationResult)
+                ? buildFinishPlan(evaluationResult)
+                : questionPlanner.plan(session, evaluationResult, ragContext, firstRound);
+
+        if (!firstRound && StringUtils.isBlank(questionPlan.getDifficulty())) {
+            questionPlan.setDifficulty(session.getCandidateSkillProfile().getCurrentDifficulty());
+        }
+        if (StringUtils.isNotBlank(questionPlan.getDifficulty())) {
+            session.getCandidateSkillProfile().setCurrentDifficulty(questionPlan.getDifficulty());
+        }
+
+        String visibleReply = renderRoundResponse(scene, evaluationResult, questionPlan, session.getCandidateSkillProfile(), firstRound);
+        session.getHistory().add(new InterviewMessageRecord(ROLE_ASSISTANT, visibleReply));
+        updatePlanningState(session, questionPlan);
+        trimHistory(session);
+
+        long now = System.currentTimeMillis();
+        if (session.getCreatedAt() == null) {
+            session.setCreatedAt(now);
+        }
+        session.setUpdatedAt(now);
+        session.setRoundIndex(session.getRoundIndex() == null ? 1 : session.getRoundIndex() + 1);
+
+        if (shouldDeleteSession(questionPlan, evaluationResult)) {
+            interviewSessionManager.deleteSession(userId, interviewId);
+        } else {
+            interviewSessionManager.saveSession(session);
+        }
+        return visibleReply;
     }
 
-    /**
-     * AI回答格式优化
-     * @param text
-     * @return
-     */
-    public static String formatText(String text) {
-        // 步骤1：移除所有特殊标记符号
-        String step1 = text.replaceAll("#{3,}|[*]{1,2}|-\\s+", "")
-                .replaceAll("\\（等待面试者回答\\）", "");
-
-        // 步骤2：分割段落并过滤空行
-        String[] paragraphs = step1.split("\\n+");
-
-        // 步骤3：合并连续空格并重新拼接
-        return Arrays.stream(paragraphs)
-                .map(String::trim)
-                .filter(s -> !s.isEmpty())
-                .collect(Collectors.joining("\n\n"));
+    private InterviewSession createSession(Long userId, String interviewId, String scene, String resumeImage) {
+        InterviewSession session = new InterviewSession();
+        session.setUserId(userId);
+        session.setInterviewId(interviewId);
+        session.setScene(scene);
+        session.setCandidateSkillProfile(new CandidateSkillProfile());
+        long now = System.currentTimeMillis();
+        session.setCreatedAt(now);
+        session.setUpdatedAt(now);
+        if (requiresResume(scene)) {
+            ThrowUtil.throwIf(StringUtils.isBlank(resumeImage), ErrorCode.PARAMS_ERROR, "resumeImage is required");
+            session.setResumeProfile(extractResumeProfile(resumeImage));
+        }
+        return session;
     }
 
-    public String mutiToTest(String recource){
-        Map<String, Object> map = new HashMap<>();
-        map.put("image", recource);
-        map.put("max_pixels", "6422528");
-        map.put("min_pixels", "3136");
-        map.put("enable_rotate", true);
-        MultiModalMessage userMessage = MultiModalMessage.builder().role(Role.USER.getValue())
+    private String buildRoundRagContext(InterviewSession session, String userAnswer, boolean firstRound) {
+        if (!SCENE_RAG.equals(session.getScene())) {
+            return "";
+        }
+        if (firstRound) {
+            return ragManager.buildContextBlock("Java backend interview opening question covering Java, Redis, MySQL, MQ and distributed systems.");
+        }
+        String lastQuestion = session.getAskedQuestions().isEmpty() ? "" : session.getAskedQuestions().get(session.getAskedQuestions().size() - 1);
+        String retrievalQuery = "Previous question:\n" + lastQuestion + "\nCandidate answer:\n" + StringUtils.defaultString(userAnswer);
+        return ragManager.buildContextBlock(retrievalQuery);
+    }
+
+    private ResumeProfile extractResumeProfile(String resumeImage) {
+        Map<String, Object> imagePart = new HashMap<>();
+        imagePart.put("image", resumeImage);
+        imagePart.put("max_pixels", 6422528);
+        imagePart.put("min_pixels", 3136);
+        imagePart.put("enable_rotate", true);
+
+        MultiModalMessage message = MultiModalMessage.builder()
+                .role(ROLE_USER)
                 .content(Arrays.asList(
-                        map,
-                        Collections.singletonMap("text", "请提取图像中的项目经历,实习经历,个人技能,专业能力等信息(如果存在)。" +
-                                "要求准确无误的提取上述关键信息、不要遗漏和捏造虚假信息，模糊或者强光遮挡的单个文字可以用英文问号?代替。" +
-                                "返回数据格式以json方式输出"))).build();
-        multiModalConversationResult.setMessages(Collections.singletonList(userMessage));
-        MultiModalConversation conv = new MultiModalConversation();
-        MultiModalConversationResult result = null;
-        try {
-            result = conv.call(multiModalConversationResult);
-        } catch (NoApiKeyException e) {
-            throw new RuntimeException(e);
-        } catch (UploadFileException e) {
-            throw new RuntimeException(e);
-        }
-        return (result.getOutput().getChoices().get(0).getMessage().getContent().get(0).get("text")
-                +MutiInitSystemPrompt).toString();
+                        imagePart,
+                        Collections.singletonMap("text", promptTemplateService.buildResumeExtractionPrompt())))
+                .build();
+
+        String rawResponse = dashScopeAiManager.generateMultiModalText(AiTaskType.OCR, Collections.singletonList(message));
+        return aiStructuredOutputService.parseOrRepair(
+                rawResponse,
+                ResumeProfile.class,
+                "AI returned invalid resume JSON"
+        );
     }
 
-    public String mutiToUpdate(String recource){
-        Map<String, Object> map = new HashMap<>();
-        map.put("image", recource);
-        map.put("max_pixels", "6422528");
-        map.put("min_pixels", "3136");
-        map.put("enable_rotate", true);
-        MultiModalMessage userMessage = MultiModalMessage.builder().role(Role.USER.getValue())
-                .content(Arrays.asList(
-                        map,
-                        Collections.singletonMap("text", "请提取图像中的项目经历,实习经历,个人技能,专业能力等信息(如果存在)。" +
-                                "要求准确无误的提取上述关键信息、不要遗漏和捏造虚假信息，模糊或者强光遮挡的单个文字可以用英文问号?代替。" +
-                                "返回数据格式以json方式输出"))).build();
-        multiModalConversationResult.setMessages(Collections.singletonList(userMessage));
-        MultiModalConversation conv = new MultiModalConversation();
-        MultiModalConversationResult result = null;
-        try {
-            result = conv.call(multiModalConversationResult);
-        } catch (NoApiKeyException e) {
-            throw new RuntimeException(e);
-        } catch (UploadFileException e) {
-            throw new RuntimeException(e);
+    private boolean shouldEndByUserInput(String scene, String userAnswer) {
+        String normalized = StringUtils.defaultString(userAnswer).trim();
+        if (normalized.isEmpty()) {
+            return false;
         }
-        return (result.getOutput().getChoices().get(0).getMessage().getContent().get(0).get("text")
-                +MutiUpdateInitSystemPrompt).toString();
+        if (SCENE_RESUME_OPTIMIZE.equals(scene)) {
+            return normalized.contains("优化结束");
+        }
+        return normalized.contains("面试结束");
+    }
+
+    private InterviewEvaluationResult buildUserExitEvaluation(String scene) {
+        InterviewEvaluationResult result = new InterviewEvaluationResult();
+        result.setStatus("FINISH");
+        result.setOverallScore(0);
+        result.setRecommendedDifficulty(SCENE_RESUME_OPTIMIZE.equals(scene) ? "BASIC" : "INTERMEDIATE");
+        result.setSummary("用户主动结束当前流程。");
+        result.setOverallFeedback("本轮根据用户意愿结束。");
+        result.setFinishReason("用户主动结束。");
+        return result;
+    }
+
+    private QuestionPlan buildFinishPlan(InterviewEvaluationResult evaluationResult) {
+        QuestionPlan questionPlan = new QuestionPlan();
+        questionPlan.setStatus("FINISH");
+        questionPlan.setDifficulty(evaluationResult == null ? "BASIC" : evaluationResult.getRecommendedDifficulty());
+        questionPlan.setFinishReason(evaluationResult == null ? "" : evaluationResult.getFinishReason());
+        return questionPlan;
+    }
+
+    private boolean shouldFinish(InterviewEvaluationResult evaluationResult) {
+        return evaluationResult != null && "FINISH".equalsIgnoreCase(evaluationResult.getStatus());
+    }
+
+    private boolean shouldDeleteSession(QuestionPlan questionPlan, InterviewEvaluationResult evaluationResult) {
+        if (questionPlan != null && "FINISH".equalsIgnoreCase(questionPlan.getStatus())) {
+            return true;
+        }
+        return evaluationResult != null && "FINISH".equalsIgnoreCase(evaluationResult.getStatus());
+    }
+
+    private void updatePlanningState(InterviewSession session, QuestionPlan questionPlan) {
+        if (questionPlan == null || !"ASK".equalsIgnoreCase(questionPlan.getStatus())) {
+            return;
+        }
+        if (StringUtils.isNotBlank(questionPlan.getQuestion())) {
+            session.getAskedQuestions().add(questionPlan.getQuestion());
+        }
+        if (questionPlan.getTopicTags() != null) {
+            for (String topicTag : questionPlan.getTopicTags()) {
+                if (StringUtils.isBlank(topicTag) || session.getCoveredTopics().contains(topicTag.trim())) {
+                    continue;
+                }
+                session.getCoveredTopics().add(topicTag.trim());
+            }
+        }
+    }
+
+    private String renderRoundResponse(
+            String scene,
+            InterviewEvaluationResult evaluationResult,
+            QuestionPlan questionPlan,
+            CandidateSkillProfile profile,
+            boolean firstRound
+    ) {
+        List<String> blocks = new ArrayList<>();
+        if (!firstRound && evaluationResult != null) {
+            blocks.add("\u672c\u8f6e\u5f97\u5206\uff1a" + evaluationResult.getOverallScore() + "/100");
+            if (StringUtils.isNotBlank(evaluationResult.getSummary())) {
+                blocks.add("\u8bc4\u4ef7\uff1a" + evaluationResult.getSummary());
+            }
+            if (!evaluationResult.getStrengths().isEmpty()) {
+                blocks.add("\u4f18\u52bf\uff1a" + String.join("\uff1b", evaluationResult.getStrengths()));
+            }
+            if (!evaluationResult.getWeaknesses().isEmpty()) {
+                blocks.add("\u5f85\u63d0\u5347\uff1a" + String.join("\uff1b", evaluationResult.getWeaknesses()));
+            }
+            if (!evaluationResult.getFocusPoints().isEmpty()) {
+                blocks.add("\u5173\u6ce8\u70b9\uff1a" + String.join("\uff1b", evaluationResult.getFocusPoints()));
+            }
+        }
+        String profileSummary = buildProfileSummary(profile, scene);
+        if (StringUtils.isNotBlank(profileSummary)) {
+            blocks.add("\u80fd\u529b\u753b\u50cf\uff1a" + profileSummary);
+        }
+        if (StringUtils.isNotBlank(profile.getCurrentDifficulty())) {
+            blocks.add("\u96be\u5ea6\uff1a" + profile.getCurrentDifficulty());
+        }
+        if (questionPlan != null && "FINISH".equalsIgnoreCase(questionPlan.getStatus())) {
+            if (evaluationResult != null && StringUtils.isNotBlank(evaluationResult.getOverallFeedback())) {
+                blocks.add("\u603b\u4f53\u8bc4\u4ef7\uff1a" + evaluationResult.getOverallFeedback());
+            } else if (StringUtils.isNotBlank(questionPlan.getFinishReason())) {
+                blocks.add("\u603b\u4f53\u8bc4\u4ef7\uff1a" + questionPlan.getFinishReason());
+            }
+        } else if (questionPlan != null && StringUtils.isNotBlank(questionPlan.getQuestion())) {
+            String label = SCENE_RESUME_OPTIMIZE.equals(scene)
+                    ? "\u8865\u5145\u95ee\u9898\uff1a"
+                    : "\u4e0b\u4e00\u95ee\uff1a";
+            blocks.add(label + questionPlan.getQuestion());
+        }
+        return String.join("\n\n", blocks);
+    }
+
+    private String buildProfileSummary(CandidateSkillProfile profile, String scene) {
+        if (profile == null || profile.getDimensionScores() == null || profile.getDimensionScores().isEmpty()) {
+            return "";
+        }
+        List<String> items = new ArrayList<>();
+        for (Map.Entry<String, Integer> entry : profile.getDimensionScores().entrySet()) {
+            if (entry.getValue() == null || entry.getValue() <= 0) {
+                continue;
+            }
+            items.add(entry.getKey() + " " + entry.getValue());
+            if (items.size() >= (SCENE_RESUME_OPTIMIZE.equals(scene) ? 4 : 5)) {
+                break;
+            }
+        }
+        return String.join("\uff1b", items);
+    }
+
+    private void trimHistory(InterviewSession session) {
+        List<InterviewMessageRecord> history = session.getHistory();
+        if (history == null || history.size() <= MAX_HISTORY_MESSAGES) {
+            return;
+        }
+        int fromIndex = history.size() - MAX_HISTORY_MESSAGES;
+        session.setHistory(new ArrayList<>(history.subList(fromIndex, history.size())));
+    }
+
+    private boolean requiresResume(String scene) {
+        return SCENE_RESUME_INTERVIEW.equals(scene) || SCENE_RESUME_OPTIMIZE.equals(scene);
+    }
+
+    private boolean needsResumeProfile(String scene, InterviewSession session) {
+        return requiresResume(scene) && session.getResumeProfile() == null;
+    }
+
+    private void validateInterviewRequest(interViewRequest request) {
+        ThrowUtil.throwIf(request == null, ErrorCode.PARAMS_ERROR, "request is required");
+        ThrowUtil.throwIf(StringUtils.isBlank(request.getInterviewId()), ErrorCode.PARAMS_ERROR, "interviewId is required");
+    }
+
+    private void validateMultiRequest(interViewMutiRequest request) {
+        ThrowUtil.throwIf(request == null, ErrorCode.PARAMS_ERROR, "request is required");
+        ThrowUtil.throwIf(StringUtils.isBlank(request.getInterviewId()), ErrorCode.PARAMS_ERROR, "interviewId is required");
     }
 }

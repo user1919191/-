@@ -236,3 +236,22 @@ langchain4j:
         model-name: "qwen-plus"
       embedding-model:
         model-name: "text-embedding-v2"
+
+app:
+  interview:
+    ai:
+      text:
+        evaluation-model: "qwen-plus"
+        planning-model: "qwen-plus"
+        json-repair-model: "qwen-turbo"
+      multimodal:
+        ocr-model: "qwen-vl-ocr"
+    session:
+      ttl-minutes: 30
+    rag:
+      document-pattern: "classpath:document/**/*.md"
+      max-results: 5
+      min-score: 0.6
+      ingest-on-startup: false
+      splitter-max-segment-size: 800
+      splitter-max-overlap-size: 120
