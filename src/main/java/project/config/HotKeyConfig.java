@@ -2,6 +2,7 @@ package project.config;
 
 import com.jd.platform.hotkey.client.ClientStarter;
 import lombok.Data;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -14,6 +15,7 @@ import org.springframework.context.annotation.Configuration;
  * 热键配置类
  */
 @Configuration
+@ConditionalOnProperty(prefix = "app.hotkey", name = "enabled", havingValue = "true")
 @ConfigurationProperties(prefix = "hotkey")
 @Data
 public class HotKeyConfig {

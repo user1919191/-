@@ -7,6 +7,7 @@ import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
+import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import project.config.AiConfig;
 /**
@@ -21,6 +22,7 @@ import project.config.AiConfig;
 @MapperScan("project.mapper")
 @EnableConfigurationProperties(AiConfig.class)
 @EnableScheduling
+@EnableAsync
 @EnableAspectJAutoProxy(proxyTargetClass = true, exposeProxy = true)
 public class MainApplication {
 

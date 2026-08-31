@@ -1,46 +1,46 @@
 package project.service;
+
 import com.baomidou.mybatisplus.extension.service.IService;
+import project.model.dto.DummyInterview.InterviewAnswerRequest;
+import project.model.dto.DummyInterview.InterviewSessionReportResponse;
+import project.model.dto.DummyInterview.InterviewRoundResultResponse;
+import project.model.dto.DummyInterview.InterviewSessionCreateRequest;
+import project.model.dto.DummyInterview.InterviewSessionDetailResponse;
+import project.model.dto.DummyInterview.ResumeAssetCreateRequest;
+import project.model.dto.DummyInterview.ResumeAssetResponse;
+import project.model.dto.DummyInterview.ResumeInterviewSessionCreateRequest;
+import project.model.dto.DummyInterview.ResumeProfile;
 import project.model.dto.DummyInterview.interViewMutiRequest;
 import project.model.dto.DummyInterview.interViewRequest;
 import project.model.entity.InterView;
-/**
- * @author 我要大声哈哈哈哈(user1919191)
- * @Profieession https://github.com/user1919191
- */
 
-
-/**
- * 模拟面试服务
- */
 public interface DummyInterViewService extends IService<InterView> {
 
-    /**
-     * 模拟面试
-     * @return
-     */
-    String interview(interViewRequest interviewrequest, Long userid);
+    InterviewRoundResultResponse createCustomInterview(InterviewSessionCreateRequest request, Long userId);
 
-    /**
-     * RAG模拟面试
-     * @param interviewrequest
-     * @param userid
-     * @return
-     */
-    String interviewByRAG(interViewRequest interviewrequest, Long userid);
+    InterviewRoundResultResponse createRandomInterview(InterviewSessionCreateRequest request, Long userId);
 
-    /**
-     * 基于简历模拟面试
-     * @param interviewrequest
-     * @param userid
-     * @return
-     */
-    String interviewByMuti(interViewMutiRequest interviewrequest, Long userid);
+    InterviewRoundResultResponse createResumeTargetedInterview(ResumeInterviewSessionCreateRequest request, Long userId);
 
-    /**
-     * 简历优化
-     * @param interviewrequest
-     * @param userid
-     * @return
-     */
-    String interviewUpdateByPNG(interViewMutiRequest interviewrequest, Long userid);
+    InterviewRoundResultResponse submitAnswer(InterviewAnswerRequest request, Long userId);
+
+    InterviewSessionDetailResponse getSessionDetail(String interviewId, Long userId);
+
+    InterviewSessionReportResponse getSessionReport(String interviewId, Long userId);
+
+    ResumeAssetResponse createResumeAsset(ResumeAssetCreateRequest request, Long userId);
+
+    ResumeAssetResponse getResumeAsset(Long resumeAssetId, Long userId);
+
+    ResumeProfile parseResumeImage(String resumeImage);
+
+    InterviewRoundResultResponse interview(interViewRequest interviewrequest, Long userid);
+
+    InterviewRoundResultResponse interviewByRAG(interViewRequest interviewrequest, Long userid);
+
+    InterviewRoundResultResponse interviewByMuti(interViewMutiRequest interviewrequest, Long userid);
+
+    InterviewRoundResultResponse interviewUpdateByPNG(interViewMutiRequest interviewrequest, Long userid);
+
+    InterviewRoundResultResponse getRoundResult(String interviewId, Long roundId, Long userId);
 }

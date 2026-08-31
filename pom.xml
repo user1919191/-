@@ -19,6 +19,7 @@
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
         <lombok.version>1.18.32</lombok.version>
+        <langgraph4j.version>1.6.0-rc2</langgraph4j.version>
     </properties>
     <dependencies>
         <dependency>
@@ -84,6 +85,11 @@
             <artifactId>langchain4j-pgvector</artifactId>
             <version>0.30.0</version>
         </dependency>
+        <dependency>
+            <groupId>org.bsc.langgraph4j</groupId>
+            <artifactId>langgraph4j-core</artifactId>
+            <version>${langgraph4j.version}</version>
+        </dependency>
         <!-- HikariCP 连接池 -->
         <dependency>
             <groupId>com.zaxxer</groupId>
@@ -125,11 +131,6 @@
             <artifactId>spring-session-data-redis</artifactId>
         </dependency>
         <!--RocketMQ -->
-        <dependency>
-            <groupId>org.apache.rocketmq</groupId>
-            <artifactId>rocketmq-spring-boot-starter</artifactId>
-            <version>2.2.2</version> <!-- 兼容 RocketMQ 4.9.x -->
-        </dependency>
         <!-- BCrypt密码加密-->
         <dependency>
             <groupId>org.mindrot</groupId>
@@ -137,10 +138,6 @@
             <version>0.4</version>
         </dependency>
         <!-- elasticsearch-->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-elasticsearch</artifactId>
-        </dependency>
         <!-- hotkey -->
         <dependency>
             <groupId>io.github.ck-jesse</groupId>

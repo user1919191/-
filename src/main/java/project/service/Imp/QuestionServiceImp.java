@@ -11,18 +11,7 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.jd.platform.hotkey.client.callback.JdHotKeyStore;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.elasticsearch.index.query.BoolQueryBuilder;
-import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.search.sort.SortBuilder;
-import org.elasticsearch.search.sort.SortBuilders;
-import org.elasticsearch.search.sort.SortOrder;
 import org.springframework.context.annotation.Lazy;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.elasticsearch.core.ElasticsearchRestTemplate;
-import org.springframework.data.elasticsearch.core.SearchHit;
-import org.springframework.data.elasticsearch.core.SearchHits;
-import org.springframework.data.elasticsearch.core.query.NativeSearchQuery;
-import org.springframework.data.elasticsearch.core.query.NativeSearchQueryBuilder;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,7 +22,6 @@ import project.exception.BusinessException;
 import project.exception.ThrowUtil;
 import project.manager.AiManager;
 import project.mapper.QuestionMapper;
-import project.model.dto.question.QuestionEsDTO;
 import project.model.dto.question.QuestionQueryRequest;
 import project.model.entity.Question;
 import project.model.entity.QuestionBankQuestion;
@@ -77,9 +65,6 @@ public class QuestionServiceImp extends ServiceImpl<QuestionMapper, Question> im
      * 事务式编程
      */
     private TransactionTemplate transactionTemplate;
-
-    @Resource
-    private ElasticsearchRestTemplate elasticsearchRestTemplate;
 
     @Resource
     private UserService userService;
@@ -406,71 +391,23 @@ public class QuestionServiceImp extends ServiceImpl<QuestionMapper, Question> im
      */
     @Override
     public Page<Question> searchFromEs(QuestionQueryRequest questionQueryRequest) {
-        Long id = questionQueryRequest.getId();
-        Long notId = questionQueryRequest.getNotId();
-        String searchText = questionQueryRequest.getSearchText();
-        List<String> tags = questionQueryRequest.getTags();
+        QueryWrapper<Question> queryWrapper = getQueryWrapper(questionQueryRequest);
         Long questionBankId = questionQueryRequest.getQuestionBankId();
-        Long userId = questionQueryRequest.getUserId();
-        int current = questionQueryRequest.getPage() - 1;
-        int pageSize = questionQueryRequest.getSize();
-        String sortField = questionQueryRequest.getSortField();
-        String sortOrder = questionQueryRequest.getSortOrder();
-
-        BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
-        boolQueryBuilder.filter(QueryBuilders.termQuery("isDelete", 0));
-        if (id != null) {
-            boolQueryBuilder.filter(QueryBuilders.termQuery("id", id));
-        }
-        if (notId != null) {
-            boolQueryBuilder.mustNot(QueryBuilders.termQuery("id", notId));
-        }
-        if (userId != null) {
-            boolQueryBuilder.filter(QueryBuilders.termQuery("userId", userId));
-        }
         if (questionBankId != null) {
-            boolQueryBuilder.filter(QueryBuilders.termQuery("questionBankId", questionBankId));
-        }
-
-        if (CollUtil.isNotEmpty(tags)) {
-            for (String tag : tags) {
-                boolQueryBuilder.filter(QueryBuilders.termQuery("tags", tag));
+            LambdaQueryWrapper<QuestionBankQuestion> relationQueryWrapper = Wrappers
+                    .lambdaQuery(QuestionBankQuestion.class)
+                    .select(QuestionBankQuestion::getQuestionId)
+                    .eq(QuestionBankQuestion::getQuestionBankId, questionBankId);
+            List<QuestionBankQuestion> relations = questionBackQuestionService.list(relationQueryWrapper);
+            if (CollUtil.isEmpty(relations)) {
+                return new Page<>(questionQueryRequest.getPage(), questionQueryRequest.getSize(), 0);
             }
+            List<Long> questionIdList = relations.stream()
+                    .map(QuestionBankQuestion::getQuestionId)
+                    .collect(Collectors.toList());
+            queryWrapper.in("id", questionIdList);
         }
-
-        if (StringUtils.isNotBlank(searchText)) {
-            boolQueryBuilder.should(QueryBuilders.matchQuery("title", searchText));
-            boolQueryBuilder.should(QueryBuilders.matchQuery("content", searchText));
-            boolQueryBuilder.should(QueryBuilders.matchQuery("answer", searchText));
-            boolQueryBuilder.minimumShouldMatch(1);
-        }
-
-        SortBuilder<?> sortBuilder = SortBuilders.scoreSort();
-        if (StringUtils.isNotBlank(sortField)) {
-            sortBuilder = SortBuilders.fieldSort(sortField);
-            sortBuilder.order(CommonConstant.Sort_Order_ASC.equals(sortOrder) ? SortOrder.ASC : SortOrder.DESC);
-        }
-
-        PageRequest pageRequest = PageRequest.of(current, pageSize);
-
-        NativeSearchQuery searchQuery = new NativeSearchQueryBuilder()
-                .withQuery(boolQueryBuilder)
-                .withPageable(pageRequest)
-                .withSorts(sortBuilder)
-                .build();
-        SearchHits<QuestionEsDTO> searchHits = elasticsearchRestTemplate.search(searchQuery, QuestionEsDTO.class);
-
-        Page<Question> page = new Page<>();
-        page.setTotal(searchHits.getTotalHits());
-        List<Question> resourceList = new ArrayList<>();
-        if (searchHits.hasSearchHits()) {
-            List<SearchHit<QuestionEsDTO>> searchHitList = searchHits.getSearchHits();
-            for (SearchHit<QuestionEsDTO> questionEsDTOSearchHit : searchHitList) {
-                resourceList.add(QuestionEsDTO.dtoToObj(questionEsDTOSearchHit.getContent()));
-            }
-        }
-        page.setRecords(resourceList);
-        return page;
+        return this.page(new Page<>(questionQueryRequest.getPage(), questionQueryRequest.getSize()), queryWrapper);
     }
 
     /**

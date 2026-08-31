@@ -1,5 +1,6 @@
 package project.service.Imp;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.github.rholder.retry.RetryException;
 import com.github.rholder.retry.Retryer;
@@ -10,21 +11,21 @@ import com.google.common.hash.Hashing;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
-import org.springframework.messaging.MessagingException;
 import org.springframework.stereotype.Service;
 import project.MQ.Event.ThumbEvent;
-import project.MQ.Product.ThumbBatchProducer;
 import project.common.ErrorCode;
 import project.exception.ThrowUtil;
 import project.mapper.PostThumbMapper;
 import project.model.entity.PostThumb;
 import project.model.entity.User;
 import project.service.PostThumbService;
+import project.service.ThumbAsyncPersistenceService;
 
 import javax.annotation.Resource;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.Collections;
+import java.util.Date;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
@@ -48,7 +49,7 @@ public class PostThumbServiceImp extends ServiceImpl<PostThumbMapper, PostThumb>
     private StringRedisTemplate stringRedisTemplate;
 
     @Resource
-    private ThumbBatchProducer thumbBatchProducer;
+    private ThumbAsyncPersistenceService thumbAsyncPersistenceService;
 
     @Override
     public int doPostThumb(long postId, User loginUser) {
@@ -100,11 +101,42 @@ public class PostThumbServiceImp extends ServiceImpl<PostThumbMapper, PostThumb>
             thumbEvent.setIsThumb(executed == 1
                     ? ThumbEvent.ThumbType.THUMB
                     : ThumbEvent.ThumbType.CANCEL_THUMB);
-            thumbBatchProducer.addThumb(thumbEvent);
+            thumbAsyncPersistenceService.persistAsync(thumbEvent);
             return executed.intValue();
-        } catch (MessagingException e) {
-            log.warn("failed to enqueue thumb event, userId={}, postId={}", userId, postId, e);
-            return -1;
+        } catch (Exception e) {
+            log.warn("redis thumb toggle unavailable, fallback to mysql, userId={}, postId={}", userId, postId, e);
+            return toggleThumbWithoutRedis(userId, postId);
         }
+    }
+
+    private int toggleThumbWithoutRedis(Long userId, long postId) {
+        LambdaQueryWrapper<PostThumb> queryWrapper = new LambdaQueryWrapper<PostThumb>()
+                .eq(PostThumb::getPostId, postId)
+                .eq(PostThumb::getUserId, userId);
+        PostThumb existing = this.getOne(queryWrapper);
+        int newState = (existing == null || existing.getIsThumb() == 0) ? 1 : 0;
+        Date now = new Date();
+
+        if (existing == null) {
+            PostThumb postThumb = new PostThumb();
+            postThumb.setPostId(postId);
+            postThumb.setUserId(userId);
+            postThumb.setCreateTime(now);
+            postThumb.setUpdateTime(now);
+            postThumb.setIsThumb(newState);
+            this.save(postThumb);
+        } else {
+            existing.setIsThumb(newState);
+            existing.setUpdateTime(now);
+            this.updateById(existing);
+        }
+
+        ThumbEvent thumbEvent = new ThumbEvent();
+        thumbEvent.setUserid(userId);
+        thumbEvent.setPostId(postId);
+        thumbEvent.setDateTime(LocalDateTime.now());
+        thumbEvent.setIsThumb(newState == 1 ? ThumbEvent.ThumbType.THUMB : ThumbEvent.ThumbType.CANCEL_THUMB);
+        thumbAsyncPersistenceService.persistAsync(thumbEvent);
+        return newState;
     }
 }

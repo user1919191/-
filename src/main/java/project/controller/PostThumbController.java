@@ -20,7 +20,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import project.MQ.Product.ThumbBatchProducer;
 import project.annotation.RateLimiter;
 import project.common.BaseResponse;
 import project.common.ErrorCode;
@@ -124,7 +123,7 @@ public class PostThumbController {
         if(doPostThumb == 1){
             increased = postService.getById(postId).IncreaseThumb();
         }else{
-            if(doPostThumb == -1){
+            if(doPostThumb == 0){
                 increased = postService.getById(postId).DecreaseThumb();
             }
         }

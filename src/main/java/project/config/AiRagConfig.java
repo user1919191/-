@@ -12,13 +12,16 @@ import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.EmbeddingStoreIngestor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.ResourcePatternResolver;
 import org.springframework.stereotype.Component;
 import project.common.ErrorCode;
 import project.exception.ThrowUtil;
+import project.service.rag.ParentChildRagService;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -27,6 +30,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Component
+@ConditionalOnProperty(prefix = "app.interview.rag", name = "enabled", havingValue = "true")
 @Slf4j
 public class AiRagConfig {
 
@@ -81,12 +85,19 @@ public class AiRagConfig {
     @Bean
     public ApplicationRunner ragDocumentVerifier(
             EmbeddingStore<TextSegment> embeddingStore,
-            EmbeddingModel embeddingModel
+            EmbeddingModel embeddingModel,
+            ObjectProvider<ParentChildRagService> parentChildRagServiceProvider
     ) {
         return args -> {
             List<Document> documents = loadMarkdownDocuments();
             log.info("RAG startup check completed, {} documents are available", documents.size());
             if (!ingestOnStartup || documents.isEmpty()) {
+                return;
+            }
+            ParentChildRagService parentChildRagService = parentChildRagServiceProvider.getIfAvailable();
+            if (parentChildRagService != null) {
+                parentChildRagService.ingest(documents);
+                log.info("RAG parent-child ingestion completed for {} documents", documents.size());
                 return;
             }
             EmbeddingStoreIngestor ingestor = EmbeddingStoreIngestor.builder()

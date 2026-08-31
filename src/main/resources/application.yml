@@ -1,71 +1,71 @@
-# 公共配置文件
+﻿# 鍏叡閰嶇疆鏂囦欢
 spring:
   application:
     name: springboot-init-master
-  # 默认 dev 环境
+  # 榛樿 dev 鐜
   profiles:
     active: dev
-  # 支持 swagger3
+  # 鏀寔 swagger3
   mvc:
     pathmatch:
       matching-strategy: ant_path_matcher
-  # 数据库配置
+  # 鏁版嵁搴撻厤缃?
   datasource:
-    #向量数据库
+    #鍚戦噺鏁版嵁搴?
     pgvector:
-      url: #Todo 填入自己的配置
+      url: #Todo 濉叆鑷繁鐨勯厤缃?
       username:
       password:
       driver-class-name: org.postgresql.Driver
-    #MySQL数据库
+    #MySQL鏁版嵁搴?
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/mianshiya
+    url: jdbc:mysql://localhost:3306/mianshiya?createDatabaseIfNotExist=true&useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
     username: root
     password: 123456
-    # 指定数据源类型
+    # 鎸囧畾鏁版嵁婧愮被鍨?
     type: com.alibaba.druid.pool.DruidDataSource
     druid:
-      # 配置初始化大小、最小、最大
+      # 閰嶇疆鍒濆鍖栧ぇ灏忋€佹渶灏忋€佹渶澶?
       initial-size: 20
       minIdle: 20
       max-active: 200
-      # 配置获取连接等待超时的时间(单位：毫秒)
+      # 閰嶇疆鑾峰彇杩炴帴绛夊緟瓒呮椂鐨勬椂闂?鍗曚綅锛氭绉?
       max-wait: 2000
-      # 配置间隔多久才进行一次检测，检测需要关闭的空闲连接，单位是毫秒
+      # 閰嶇疆闂撮殧澶氫箙鎵嶈繘琛屼竴娆℃娴嬶紝妫€娴嬮渶瑕佸叧闂殑绌洪棽杩炴帴锛屽崟浣嶆槸姣
       time-between-eviction-runs-millis: 2000
-      # 配置一个连接在池中最小生存的时间，单位是毫秒
+      # 閰嶇疆涓€涓繛鎺ュ湪姹犱腑鏈€灏忕敓瀛樼殑鏃堕棿锛屽崟浣嶆槸姣
       min-evictable-idle-time-millis: 600000
       max-evictable-idle-time-millis: 900000
-      # 用来测试连接是否可用的SQL语句,默认值每种数据库都不相同,这是mysql
+      # 鐢ㄦ潵娴嬭瘯杩炴帴鏄惁鍙敤鐨凷QL璇彞,榛樿鍊兼瘡绉嶆暟鎹簱閮戒笉鐩稿悓,杩欐槸mysql
       validationQuery: select 1
-      # 应用向连接池申请连接，并且testOnBorrow为false时，连接池将会判断连接是否处于空闲状态，如果是，则验证这条连接是否可用
+      # 搴旂敤鍚戣繛鎺ユ睜鐢宠杩炴帴锛屽苟涓攖estOnBorrow涓篺alse鏃讹紝杩炴帴姹犲皢浼氬垽鏂繛鎺ユ槸鍚﹀浜庣┖闂茬姸鎬侊紝濡傛灉鏄紝鍒欓獙璇佽繖鏉¤繛鎺ユ槸鍚﹀彲鐢?
       testWhileIdle: true
-      # 如果为true，默认是false，应用向连接池申请连接时，连接池会判断这条连接是否是可用的
+      # 濡傛灉涓簍rue锛岄粯璁ゆ槸false锛屽簲鐢ㄥ悜杩炴帴姹犵敵璇疯繛鎺ユ椂锛岃繛鎺ユ睜浼氬垽鏂繖鏉¤繛鎺ユ槸鍚︽槸鍙敤鐨?
       testOnBorrow: false
-      # 如果为true（默认false），当应用使用完连接，连接池回收连接的时候会判断该连接是否还可用
+      # 濡傛灉涓簍rue锛堥粯璁alse锛夛紝褰撳簲鐢ㄤ娇鐢ㄥ畬杩炴帴锛岃繛鎺ユ睜鍥炴敹杩炴帴鐨勬椂鍊欎細鍒ゆ柇璇ヨ繛鎺ユ槸鍚﹁繕鍙敤
       testOnReturn: false
-      # 是否缓存preparedStatement，也就是PSCache。PSCache对支持游标的数据库性能提升巨大，比如说oracle
+      # 鏄惁缂撳瓨preparedStatement锛屼篃灏辨槸PSCache銆侾SCache瀵规敮鎸佹父鏍囩殑鏁版嵁搴撴€ц兘鎻愬崌宸ㄥぇ锛屾瘮濡傝oracle
       poolPreparedStatements: true
-      # 要启用PSCache，必须配置大于0，当大于0时， poolPreparedStatements自动触发修改为true，
-      # 在Druid中，不会存在Oracle下PSCache占用内存过多的问题，
-      # 可以把这个数值配置大一些，比如说100
+      # 瑕佸惎鐢≒SCache锛屽繀椤婚厤缃ぇ浜?锛屽綋澶т簬0鏃讹紝 poolPreparedStatements鑷姩瑙﹀彂淇敼涓簍rue锛?
+      # 鍦―ruid涓紝涓嶄細瀛樺湪Oracle涓婸SCache鍗犵敤鍐呭瓨杩囧鐨勯棶棰橈紝
+      # 鍙互鎶婅繖涓暟鍊奸厤缃ぇ涓€浜涳紝姣斿璇?00
       maxOpenPreparedStatements: 20
-      # 连接池中的minIdle数量以内的连接，空闲时间超过minEvictableIdleTimeMillis，则会执行keepAlive操作
+      # 杩炴帴姹犱腑鐨刴inIdle鏁伴噺浠ュ唴鐨勮繛鎺ワ紝绌洪棽鏃堕棿瓒呰繃minEvictableIdleTimeMillis锛屽垯浼氭墽琛宬eepAlive鎿嶄綔
       keepAlive: true
-      # Spring 监控，利用aop 对指定接口的执行时间，jdbc数进行记录
+      # Spring 鐩戞帶锛屽埄鐢╝op 瀵规寚瀹氭帴鍙ｇ殑鎵ц鏃堕棿锛宩dbc鏁拌繘琛岃褰?
       aop-patterns: "com.springboot.template.dao.*"
-      ########### 启用内置过滤器（第一个 stat 必须，否则监控不到SQL）##########
+      ########### 鍚敤鍐呯疆杩囨护鍣紙绗竴涓?stat 蹇呴』锛屽惁鍒欑洃鎺т笉鍒癝QL锛?#########
       filters: stat,wall,log4j2
-      # 自己配置监控统计拦截的filter
+      # 鑷繁閰嶇疆鐩戞帶缁熻鎷︽埅鐨刦ilter
       filter:
-        # 开启druiddatasource的状态监控
+        # 寮€鍚痙ruiddatasource鐨勭姸鎬佺洃鎺?
         stat:
           enabled: true
           db-type: mysql
-          # 开启慢sql监控，超过2s 就认为是慢sql，记录到日志中
+          # 寮€鍚參sql鐩戞帶锛岃秴杩?s 灏辫涓烘槸鎱ql锛岃褰曞埌鏃ュ織涓?
           log-slow-sql: true
           slow-sql-millis: 2000
-        # 日志监控，使用slf4j 进行日志输出
+        # 鏃ュ織鐩戞帶锛屼娇鐢╯lf4j 杩涜鏃ュ織杈撳嚭
         slf4j:
           enabled: true
           statement-log-error-enabled: true
@@ -73,55 +73,57 @@ spring:
           statement-close-after-log-enabled: false
           result-set-open-after-log-enabled: false
           result-set-close-after-log-enabled: false
-      ########## 配置WebStatFilter，用于采集web关联监控的数据 ##########
+      ########## 閰嶇疆WebStatFilter锛岀敤浜庨噰闆唚eb鍏宠仈鐩戞帶鐨勬暟鎹?##########
       web-stat-filter:
-        enabled: true                   # 启动 StatFilter
-        url-pattern: /* # 过滤所有url
-        exclusions: "*.js,*.gif,*.jpg,*.png,*.css,*.ico,/druid/*" # 排除一些不必要的url
-        session-stat-enable: true       # 开启session统计功能
-        session-stat-max-count: 1000 # session的最大个数,默认100
-      ########## 配置StatViewServlet（监控页面），用于展示Druid的统计信息 ##########
+        enabled: true                   # 鍚姩 StatFilter
+        url-pattern: /* # 杩囨护鎵€鏈塽rl
+        exclusions: "*.js,*.gif,*.jpg,*.png,*.css,*.ico,/druid/*" # 鎺掗櫎涓€浜涗笉蹇呰鐨剈rl
+        session-stat-enable: true       # 寮€鍚痵ession缁熻鍔熻兘
+        session-stat-max-count: 1000 # session鐨勬渶澶т釜鏁?榛樿100
+      ########## 閰嶇疆StatViewServlet锛堢洃鎺ч〉闈級锛岀敤浜庡睍绀篋ruid鐨勭粺璁′俊鎭?##########
       stat-view-servlet:
-        enabled: true                   # 启用StatViewServlet
-        url-pattern: /druid/* # 访问内置监控页面的路径，内置监控页面的首页是/druid/index.html
-        reset-enable: false              # 不允许清空统计数据,重新计算
-        login-username: root # 配置监控页面访问密码
+        enabled: true                   # 鍚敤StatViewServlet
+        url-pattern: /druid/* # 璁块棶鍐呯疆鐩戞帶椤甸潰鐨勮矾寰勶紝鍐呯疆鐩戞帶椤甸潰鐨勯椤垫槸/druid/index.html
+        reset-enable: false              # 涓嶅厑璁告竻绌虹粺璁℃暟鎹?閲嶆柊璁＄畻
+        login-username: root # 閰嶇疆鐩戞帶椤甸潰璁块棶瀵嗙爜
         login-password: 123
-        allow: 127.0.0.1 # 允许访问的地址，如果allow没有配置或者为空，则允许所有访问
-        deny: # 拒绝访问的地址，deny优先于allow，如果在deny列表中，就算在allow列表中，也会被拒绝
+        allow: 127.0.0.1 # 鍏佽璁块棶鐨勫湴鍧€锛屽鏋渁llow娌℃湁閰嶇疆鎴栬€呬负绌猴紝鍒欏厑璁告墍鏈夎闂?
+        deny: # 鎷掔粷璁块棶鐨勫湴鍧€锛宒eny浼樺厛浜巃llow锛屽鏋滃湪deny鍒楄〃涓紝灏辩畻鍦╝llow鍒楄〃涓紝涔熶細琚嫆缁?
   ai:
     dashscope:
       api-key:
-        key1: #todo 填入自己的配置
+        key1: #todo 濉叆鑷繁鐨勯厤缃?
         key2:
       chat:
         options:
           model:
             model1: "qwen-plus"
             model2: "qwen-vl-ocr"
-  # Redis 配置
+  # Redis 閰嶇疆
   redis:
     database: 1
     host: localhost
     port: 6379
     timeout: 5000
-  #    password: 123456
-  # Elasticsearch 配置
-  elasticsearch:
-    uris: http://localhost:9200
-    username: root
-    password: 123456
-  # 文件上传
+  #    password: 123456  # 鏂囦欢涓婁紶
   servlet:
     multipart:
-      # 大小限制
+      # 澶у皬闄愬埗
       max-file-size: 10MB
+  sql:
+    init:
+      mode: always
+      encoding: UTF-8
+      schema-locations: file:./docs/mianshiya_mysql_init.sql
+      continue-on-error: true
+  session:
+    store-type: none
 server:
   address: 0.0.0.0
   port: 8101
   servlet:
     context-path: /api
-    # cookie 30 天过期
+    # cookie 30 澶╄繃鏈?
     session:
       cookie:
         max-age: 2592000
@@ -131,44 +133,44 @@ mybatis-plus:
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
   global-config:
     db-config:
-      logic-delete-field: isDelete # 全局逻辑删除的实体字段名
-      logic-delete-value: 1 # 逻辑已删除值（默认为 1）
-      logic-not-delete-value: 0 # 逻辑未删除值（默认为 0）
-# 热 key 探测
+      logic-delete-field: isDelete # 鍏ㄥ眬閫昏緫鍒犻櫎鐨勫疄浣撳瓧娈靛悕
+      logic-delete-value: 1 # 閫昏緫宸插垹闄ゅ€硷紙榛樿涓?1锛?
+      logic-not-delete-value: 0 # 閫昏緫鏈垹闄ゅ€硷紙榛樿涓?0锛?
+# 鐑?key 鎺㈡祴
 hotkey:
   app-name: mianshiya
   caffeine-size: 10000
   push-period: 1000
   etcd-server: http://localhost:2379
-# 配置中心
+# 閰嶇疆涓績
 nacos:
   config:
-    server-addr: 127.0.0.1:8848  # nacos 地址
+    server-addr: 127.0.0.1:8848  # nacos 鍦板潃
     bootstrap:
-      enable: true  # 预加载
-    data-id: mianshiya # 控制台填写的 Data ID
-    group: DEFAULT_GROUP # 控制台填写的 group
-    type: yaml  # 选择的文件格式
-    auto-refresh: true # 开启自动刷新
-# Sa-Token 配置
+      enable: true  # 棰勫姞杞?
+    data-id: mianshiya # 鎺у埗鍙板～鍐欑殑 Data ID
+    group: DEFAULT_GROUP # 鎺у埗鍙板～鍐欑殑 group
+    type: yaml  # 閫夋嫨鐨勬枃浠舵牸寮?
+    auto-refresh: true # 寮€鍚嚜鍔ㄥ埛鏂?
+# Sa-Token 閰嶇疆
 sa-token:
-  # token 名称（同时也是 cookie 名称）
+  # token 鍚嶇О锛堝悓鏃朵篃鏄?cookie 鍚嶇О锛?
   token-name: mianshiya
-  # token 有效期（单位：秒） 默认30天，-1 代表永久有效
+  # token 鏈夋晥鏈燂紙鍗曚綅锛氱锛?榛樿30澶╋紝-1 浠ｈ〃姘镐箙鏈夋晥
   timeout: 2592000
-  # token 最低活跃频率（单位：秒），如果 token 超过此时间没有访问系统就会被冻结，默认-1 代表不限制，永不冻结
+  # token 鏈€浣庢椿璺冮鐜囷紙鍗曚綅锛氱锛夛紝濡傛灉 token 瓒呰繃姝ゆ椂闂存病鏈夎闂郴缁熷氨浼氳鍐荤粨锛岄粯璁?1 浠ｈ〃涓嶉檺鍒讹紝姘镐笉鍐荤粨
   active-timeout: -1
-  # 是否允许同一账号多地同时登录 （为 true 时允许一起登录, 为 false 时新登录挤掉旧登录）
+  # 鏄惁鍏佽鍚屼竴璐﹀彿澶氬湴鍚屾椂鐧诲綍 锛堜负 true 鏃跺厑璁镐竴璧风櫥褰? 涓?false 鏃舵柊鐧诲綍鎸ゆ帀鏃х櫥褰曪級
   is-concurrent: false
-  # 在多人登录同一账号时，是否共用一个 token （为 true 时所有登录共用一个 token, 为 false 时每次登录新建一个 token）
+  # 鍦ㄥ浜虹櫥褰曞悓涓€璐﹀彿鏃讹紝鏄惁鍏辩敤涓€涓?token 锛堜负 true 鏃舵墍鏈夌櫥褰曞叡鐢ㄤ竴涓?token, 涓?false 鏃舵瘡娆＄櫥褰曟柊寤轰竴涓?token锛?
   is-share: true
-  # token 风格（默认可取值：uuid、simple-uuid、random-32、random-64、random-128、tik）
+  # token 椋庢牸锛堥粯璁ゅ彲鍙栧€硷細uuid銆乻imple-uuid銆乺andom-32銆乺andom-64銆乺andom-128銆乼ik锛?
   token-style: uuid
-  # 是否输出操作日志
+  # 鏄惁杈撳嚭鎿嶄綔鏃ュ織
   is-log: true
-# 微信相关
+# 寰俊鐩稿叧
 wx:
-  # 微信公众平台
+  # 寰俊鍏紬骞冲彴
   mp:
     token: xxx
     aesKey: xxx
@@ -181,63 +183,49 @@ wx:
         host: 127.0.0.1
         port: 6379
       type: Memory
-  # 微信开放平台
+  # 寰俊寮€鏀惧钩鍙?
   open:
     appId: xxx
     appSecret: xxx
-# 对象存储
+# 瀵硅薄瀛樺偍
 cos:
   client:
     accessKey: xxx
     secretKey: xxx
     region: xxx
     bucket: xxx
-# 接口文档配置
+# 鎺ュ彛鏂囨。閰嶇疆
 knife4j:
   enable: true
   openapi:
-    title: "接口文档"
+    title: "鎺ュ彛鏂囨。"
     version: 1.0
     group:
       default:
         api-rule: package
         api-rule-resources:
           - project.controller
-#接口文档 http://localhost:8101/api/doc.html#/home
+#鎺ュ彛鏂囨。 http://localhost:8101/api/doc.html#/home
 
-#AI大模型接口API
+#AI澶фā鍨嬫帴鍙PI
 ai:
-  apiKey: #Todo 填入自己的APIKey
-  
-#RoketMQ消息队列
-rocketmq:
-  name-server: 192.168.21.190:9876  # NameServer 地址
-  producer:
-    group: thumb-producer-group   # 生产者组（需唯一）
-    send-message-timeout: 3000 # 发送超时（毫秒）
-    batch: true # 开启批量发送
-    batch-send-delay-ms: 10000 # 批量发送延迟（毫秒）
-    batch-max-size: 1000 # 批量发送最大消息数
-    retry-times-when-send-failed: 2 # 发送失败重试次数
-    batch-send: true              # 启用批量发送（部分客户端需要代码实现）
-    batch-send-size: 100          # 每批最大消息数（根据业务调整）
-    batch-send-interval: 10000      # 批量发送间隔(ms)
-  consumer:
-    group: thumb-consumer-group   # 消费者组（需唯一）
-    consume-thread-max: 20     # 最大消费线程数
-    max-reconsume-times: 10000
-
-#langchain4j配置类
+  apiKey: #Todo 濉叆鑷繁鐨凙PIKey#langchain4j閰嶇疆绫?
 langchain4j:
   community:
     dashscope:
-      api-key: #Todo 填入自己的APIKey
+      api-key: #Todo 濉叆鑷繁鐨凙PIKey
       chat-model:
         model-name: "qwen-plus"
       embedding-model:
         model-name: "text-embedding-v2"
 
 app:
+  redisson:
+    enabled: false
+  hotkey:
+    enabled: false
+  pgvector:
+    enabled: false
   interview:
     ai:
       text:
@@ -249,9 +237,19 @@ app:
     session:
       ttl-minutes: 30
     rag:
+      enabled: false
       document-pattern: "classpath:document/**/*.md"
       max-results: 5
       min-score: 0.6
+      main-flow-enabled: true
+      main-flow-top-k: 3
+      main-flow-min-answer-length: 20
       ingest-on-startup: false
+      parent-max-segment-size: 1800
+      parent-max-overlap-size: 120
+      child-max-segment-size: 500
+      child-max-overlap-size: 80
       splitter-max-segment-size: 800
       splitter-max-overlap-size: 120
+
+
